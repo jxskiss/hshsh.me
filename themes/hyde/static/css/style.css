@@ -1,11 +1,24 @@
 /* rewrite hyde's style */
-.sidebar-about h1 {font-size: 2.75rem;}
+@media (min-width: 48em) {
+  .sidebar {max-width: 13rem;}
+  .sidebar-about h1 {font-size: 2rem;}
+  .content.container {margin-left: 15rem; margin-right: 2rem; max-width: 100rem;}
+}
+@media (max-width: 48em) {
+  .sidebar-about h1 {font-size: 2rem;}
+  ul.sidebar-nav {float: left; width: 100%;}
+  ul.sidebar-nav li {display: inline; font-size: 1.5rem;}
+}
 pre {padding: 0;}
-pre code {font-size: 90%;}
-table {font-size: 90%;}
+pre code {font-size: 95%;}
+pre p {margin: 0}
+table {font-size: 95%;}
 table th, table td {text-align: left;}
 
 /* custom styles */
-div.posts ul {list-style-type: none;}
-div.posts time {float:right;}
+div.posts-list ul {list-style-type: none;}
+div.posts-list time {float:right;}
 .hljs {padding: 1em;}
+
+/* jupyter */
+.cell pre {padding: 1em;}

@@ -5,7 +5,7 @@
 
   <div class="content container">
     <div style="font-style:italic; color:#ccc; text-align:right; margin-bottom: 2rem;">{{ .Site.Params.motto }}</div>
-    <div class="posts">
+    <div class="posts-list">
         {{ range .Data.Pages.GroupByDate "2006" }}
         <h2>{{ .Key }}</h2>
           <ul>
