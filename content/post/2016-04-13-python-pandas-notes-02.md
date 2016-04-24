@@ -218,12 +218,9 @@ frame
 
 ```python
 frame2 = DataFrame(data, columns=['year', 'state', 'pop', 'debt'],
-                                  index=['one', 'two', 'three', 'four', 'five'])
+                   index=['one', 'two', 'three', 'four', 'five'])
 frame2
 ```
-
-
-
 
 <div>
 <table border="1" class="dataframe">
@@ -286,8 +283,6 @@ frame2
 ```python
 frame2['state']  # or frame2.state
 ```
-
-
 
 
     one        Ohio

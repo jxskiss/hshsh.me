@@ -4,7 +4,7 @@ Description = ""
 Tags = ["python"]
 date = "2016-04-08T09:27:54+08:00"
 menu = "main"
-title = "[转载]Python类引入机制"
+title = "[转载] Python类引入机制"
 
 +++
 
@@ -141,7 +141,7 @@ ImportError: No module named ex2.foo
 
 ``` python
 ╭─liuchang@liuchangdeMacBook-Pro  ~/Codes/pycon
-╰─$ python -m ex3.main                                                                             
+╰─$ python -m ex3.main
 __main__
 ex3
 2
@@ -420,7 +420,8 @@ class AutoInstall(object):
             cls._loaded.add(name)
             print("Installing", name)
             try:
-                out = subprocess.check_output(['sudo', sys.executable, '-m', 'pip', 'install', name])
+                out = subprocess.check_output(
+                    ['sudo', sys.executable, '-m', 'pip', 'install', name])
                 print(out)
             except Exception as e:
                 print("Failed" + e.message)

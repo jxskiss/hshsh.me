@@ -22,7 +22,8 @@ title = "Python代理类两例"
 
 ```python
 import MySQLdb
-conn = MySQLdb.connect(host='host', port='port', user='user', passwd='passwd', db='db')
+conn = MySQLdb.connect(host='host', port='port',
+                       user='user', passwd='passwd', db='db')
 
 def use_mysql():
     cursor = conn.cursor()
@@ -50,7 +51,8 @@ class ProxyConnection(Connection):
             super(ProxyConnection, self).__init__(*self.args, **self.kwargs)
         return super(ProxyConnection, self).cursor(cursorclass)
 
-conn = ProxyConnection(host='host', port='port', user='user', passwd='passwd', db='db')
+conn = ProxyConnection(host='host', port='port',
+                       user='user', passwd='passwd', db='db')
 
 def use_mysql():
     cursor = conn.cursor()

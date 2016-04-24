@@ -14,18 +14,21 @@ title = "Pandas学习笔记（一）：CSV数据加载保存"
 很多数据都存储在CSV文件中，Pandas 为读取提供了一个强大的 `read_csv` 函数，这个函数接受很多可选参数，通过参数控制数据加载的方式，以及一些基本的清理工作。
 
 ```python
-pd.read_csv(filepath_or_buffer, sep=',', delimiter=None, header='infer', names=None,
-    index_col=None, usecols=None, squeeze=False, prefix=None, mangle_dupe_cols=True,
-    dtype=None, engine=None, converters=None, true_values=None, false_values=None,
-    skipinitialspace=False, skiprows=None, skipfooter=None, nrows=None, na_values=None,
+pd.read_csv(filepath_or_buffer, sep=',', delimiter=None, header='infer',
+    names=None, index_col=None, usecols=None, squeeze=False, prefix=None,
+    mangle_dupe_cols=True, dtype=None, engine=None, converters=None,
+    true_values=None, false_values=None, skipinitialspace=False,
+    skiprows=None, skipfooter=None, nrows=None, na_values=None,
     keep_default_na=True, na_filter=True, verbose=False, skip_blank_lines=True,
     parse_dates=False, infer_datetime_format=False, keep_date_col=False,
-    date_parser=None, dayfirst=False, iterator=False, chunksize=None, compression='infer',
-    thousands=None, decimal='.', lineterminator=None, quotechar='"', quoting=0,
-    escapechar=None, comment=None, encoding=None, dialect=None, tupleize_cols=False,
-    error_bad_lines=True, warn_bad_lines=True, skip_footer=0, doublequote=True,
-    delim_whitespace=False, as_recarray=False, compact_ints=False, use_unsigned=False,
-    low_memory=True, buffer_lines=None, memory_map=False, float_precision=None)
+    date_parser=None, dayfirst=False, iterator=False, chunksize=None,
+    compression='infer', thousands=None, decimal='.', lineterminator=None,
+    quotechar='"', quoting=0, escapechar=None, comment=None, encoding=None,
+    dialect=None, tupleize_cols=False, error_bad_lines=True,
+    warn_bad_lines=True, skip_footer=0, doublequote=True,
+    delim_whitespace=False, as_recarray=False, compact_ints=False,
+    use_unsigned=False, low_memory=True, buffer_lines=None, memory_map=False,
+    float_precision=None)
 
 Returns
     result : DataFrame or TextParser
@@ -426,7 +429,8 @@ def my_date_parser(dt, hour):
 
 tmp_csv_file.seek(0)
 df = pd.read_csv(tmp_csv_file, date_parser=my_date_parser,
-                 parse_dates={'time': [0, 1], 'time2': ['date2', 'hour2']}, index_col='time')
+                 parse_dates={'time': [0, 1], 'time2': ['date2', 'hour2']},
+                 index_col='time')
 df
 ```
 
@@ -533,9 +537,9 @@ Bingo！是不是搞定了。这样加载并解析时间序列的效率也比加
 除了加载CSV数据很方便之外，Pandas 的 DataFrame 类一个很方便的 `to_csv` 方法，可以把数据保存到CSV文件中。
 
 ```python
-pd.DataFrame.to_csv(self, path_or_buf=None, sep=',', na_rep='', float_format=None,
-    columns=None, header=True, index=True, index_label=None, mode='w',
-    encoding=None, compression=None, quoting=None, quotechar='"', 
+pd.DataFrame.to_csv(self, path_or_buf=None, sep=',', na_rep='',
+    float_format=None, columns=None, header=True, index=True, index_label=None,
+    mode='w', encoding=None, compression=None, quoting=None, quotechar='"', 
     line_terminator='\n', chunksize=None, tupleize_cols=False, date_format=None,
     doublequote=True, escapechar=None, decimal='.', **kwds)
     
