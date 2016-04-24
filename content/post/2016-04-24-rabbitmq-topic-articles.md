@@ -1,7 +1,7 @@
 +++
 Categories = ["架构设计"]
 Description = ""
-Tags = ["rabbitmq, python, 架构设计"]
+Tags = ["rabbitmq", "python", "架构设计"]
 date = "2016-04-24T22:48:11+08:00"
 menu = "main"
 title = "[转载] 专栏：RabbitMQ从入门到精通"
