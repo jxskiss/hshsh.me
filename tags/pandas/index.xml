@@ -1,0 +1,965 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Pandas on hshsh&#39;s little site</title>
+    <link>http://hshsh.me/tags/pandas/</link>
+    <description>Recent content in Pandas on hshsh&#39;s little site</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Wed, 13 Apr 2016 18:02:04 +0800</lastBuildDate>
+    <atom:link href="http://hshsh.me/tags/pandas/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Pandas学习笔记（二）：基本数据结构</title>
+      <link>http://hshsh.me/post/2016-04-13-python-pandas-notes-02/</link>
+      <pubDate>Wed, 13 Apr 2016 18:02:04 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2016-04-13-python-pandas-notes-02/</guid>
+      <description>
+
+&lt;p&gt;Pandas的开发者是：&lt;a href=&#34;http://wesmckinney.com&#34;&gt;Wes McKinney&lt;/a&gt;，这位大牛工作的时候没有顺手的工具，就决定自己顺手写一个出来。&lt;/p&gt;
+
+&lt;p&gt;Pandas具有但不限于一下特点：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;具备按轴自动或显式数据对齐功能的数据结构，这可以防止许多由于数据没有对齐以及来自不同数据源（索引方式不同）的数据而导致的常见错误；&lt;/li&gt;
+&lt;li&gt;集成时间序列功能；&lt;/li&gt;
+&lt;li&gt;既能处理时间序列数据也能处理非时间序列数据的数据结构；&lt;/li&gt;
+&lt;li&gt;数学运算和约简（比如对某个轴求和）可以根据不同的元数据（轴编号）执行；&lt;/li&gt;
+&lt;li&gt;可以灵活处理缺失数据；&lt;/li&gt;
+&lt;li&gt;合并及其他出现在常见数据库（例如基于SQL的）中的关系型运算。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Pandas的导入约定：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from pandas import Series, DataFrame
+import pandas as pd
+import numpy as np
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;series&#34;&gt;Series&lt;/h2&gt;
+
+&lt;p&gt;Series可以使用列表初始化，初始化时还可以指定索引名称。&lt;/p&gt;
+
+&lt;p&gt;Series可以被看成时一个定长的有序字典，因为它时索引值到数据值的一个映射，它可以用在许多原本需要字典参数的函数中。&lt;/p&gt;
+
+&lt;p&gt;如果数据被存放在一个Python字典中，也可以直接通过这个字典来创建Series。通过指定 &lt;code&gt;index&lt;/code&gt; 可以只选择需要的对象，缺失值使用NaN自动填充。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;obj = Series([4, 7, -5, 3])
+obj, obj.values, obj.index
+
+obj = Series([4, 7, -5, 3], index=[&#39;d&#39;, &#39;b&#39;, &#39;a&#39;, &#39;c&#39;])
+
+obj[obj &amp;gt; 0]
+obj * 2
+np.exp(obj)
+
+&#39;b&#39; in obj
+
+sdata = {&#39;Ohio&#39;: 35000, &#39;Texas&#39;: 71000, &#39;Oregon&#39;: 16000, &#39;Utah&#39;: 5000}
+sdata = Series(sdata)
+sdata
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;Ohio      35000
+Oregon    16000
+Texas     71000
+Utah       5000
+dtype: int64
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;states = [&#39;California&#39;, &#39;Ohio&#39;, &#39;Oregon&#39;, &#39;Texas&#39;]
+obj = Series(sdata, index=states)
+obj
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;California        NaN
+Ohio          35000.0
+Oregon        16000.0
+Texas         71000.0
+dtype: float64
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;对很多应用而言，Series最重要的一个功能是：在算数运算中会自动对齐不同索引的数据。&lt;/p&gt;
+
+&lt;p&gt;Series对象本身及其索引都有一个 &lt;code&gt;name&lt;/code&gt; 属性，该属性跟Pandas其他的关键功能关系非常密切。&lt;/p&gt;
+
+&lt;p&gt;Series的索引可以通过赋值的方式就地修改。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;sdata + obj
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;California         NaN
+Ohio           70000.0
+Oregon         32000.0
+Texas         142000.0
+Utah               NaN
+dtype: float64
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;obj.name = &#39;population&#39;
+obj.index.name = &#39;state&#39;
+obj
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;state
+California        NaN
+Ohio          35000.0
+Oregon        16000.0
+Texas         71000.0
+Name: population, dtype: float64
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;obj.index = [&#39;Tibet&#39;, &#39;Beijing&#39;, &#39;Tianjin&#39;, &#39;Henan&#39;]
+obj
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;Tibet          NaN
+Beijing    35000.0
+Tianjin    16000.0
+Henan      71000.0
+Name: population, dtype: float64
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;dataframe&#34;&gt;DataFrame&lt;/h2&gt;
+
+&lt;p&gt;DataFrame是一个表格型的数据结构，含有一组有序的列，每列可以时不同的值类型（数值、字符串、布尔值等）。&lt;/p&gt;
+
+&lt;p&gt;DataFrame既有行索引也有列索引，它可以被看成由Series组成的字典（共用同一个索引）。&lt;/p&gt;
+
+&lt;p&gt;跟其他类似的数据结构相比（如R的 &lt;code&gt;data.frame&lt;/code&gt;），DataFrame中面向行和面向列的操作基本上时平衡的。&lt;/p&gt;
+
+&lt;p&gt;构建DataFrame的办法有很多种，最常用的一种是直接传入一个由等长列表或NumPy数组组成的字典，DataFrame会自动加上索引，且所有列会被有序排列：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;data = {&#39;state&#39;: [&#39;Ohio&#39;, &#39;Ohio&#39;, &#39;Ohio&#39;, &#39;Nevada&#39;, &#39;Nevada&#39;],
+            &#39;year&#39;: [2000, 2001, 2002, 2001, 2002],
+            &#39;pop&#39;: [1.5, 1.7, 3.6, 2.4, 2.9]}
+frame = DataFrame(data)
+frame
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;div&gt;
+&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
+  &lt;thead&gt;
+    &lt;tr style=&#34;text-align: right;&#34;&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;pop&lt;/th&gt;
+      &lt;th&gt;state&lt;/th&gt;
+      &lt;th&gt;year&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;0&lt;/th&gt;
+      &lt;td&gt;1.5&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;2000&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;1&lt;/th&gt;
+      &lt;td&gt;1.7&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;2001&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2&lt;/th&gt;
+      &lt;td&gt;3.6&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;2002&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;3&lt;/th&gt;
+      &lt;td&gt;2.4&lt;/td&gt;
+      &lt;td&gt;Nevada&lt;/td&gt;
+      &lt;td&gt;2001&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;4&lt;/th&gt;
+      &lt;td&gt;2.9&lt;/td&gt;
+      &lt;td&gt;Nevada&lt;/td&gt;
+      &lt;td&gt;2002&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;p&gt;如果指定了列序列，则DataFrame的列就会按照指定顺序进行排列，如果传入的列在数据中找不到，则会产生NaN值。&lt;/p&gt;
+
+&lt;p&gt;除了指定列序列，还可以指定行索引序列，而不是使用默认的数字索引。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;frame2 = DataFrame(data, columns=[&#39;year&#39;, &#39;state&#39;, &#39;pop&#39;, &#39;debt&#39;],
+                   index=[&#39;one&#39;, &#39;two&#39;, &#39;three&#39;, &#39;four&#39;, &#39;five&#39;])
+frame2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;div&gt;
+&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
+  &lt;thead&gt;
+    &lt;tr style=&#34;text-align: right;&#34;&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;year&lt;/th&gt;
+      &lt;th&gt;state&lt;/th&gt;
+      &lt;th&gt;pop&lt;/th&gt;
+      &lt;th&gt;debt&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;one&lt;/th&gt;
+      &lt;td&gt;2000&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;1.5&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;two&lt;/th&gt;
+      &lt;td&gt;2001&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;1.7&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;three&lt;/th&gt;
+      &lt;td&gt;2002&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;3.6&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;four&lt;/th&gt;
+      &lt;td&gt;2001&lt;/td&gt;
+      &lt;td&gt;Nevada&lt;/td&gt;
+      &lt;td&gt;2.4&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;five&lt;/th&gt;
+      &lt;td&gt;2002&lt;/td&gt;
+      &lt;td&gt;Nevada&lt;/td&gt;
+      &lt;td&gt;2.9&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;p&gt;通过类似字典标记的方式或属性的方式，可以将DataFrame的列获取为一个Series。&lt;/p&gt;
+
+&lt;p&gt;返回的Series拥有原DataFrame相同的索引，而且其 &lt;code&gt;name&lt;/code&gt; 属性也已经被相应的设置好狼（抽取的列名）。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;frame2[&#39;state&#39;]  # or frame2.state
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;one        Ohio
+two        Ohio
+three      Ohio
+four     Nevada
+five     Nevada
+Name: state, dtype: object
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;行也可以通过位置或名称的方式进行获取，比如用索引字段 &lt;code&gt;ix&lt;/code&gt; 获取：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;frame2.ix[&#39;three&#39;]  # or frame2.ix[2]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;year     2002
+state    Ohio
+pop       3.6
+debt      NaN
+Name: three, dtype: object
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;列可以通过赋值的方式进行修改：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;使用标量赋值会赋值给整列；&lt;/li&gt;
+&lt;li&gt;使用列表或数组给某个列赋值时，其长度必须跟DataFrame的长度相匹配（如果不匹配，会抛出ValueError异常）；&lt;/li&gt;
+&lt;li&gt;如果赋值的是一个Series，会精确匹配DataFrame的索引，所有空位都将被填上缺失值 &lt;code&gt;NaN&lt;/code&gt;；&lt;/li&gt;
+&lt;li&gt;为不存在的列赋值会创建出一个新列；&lt;/li&gt;
+&lt;li&gt;关键字 &lt;code&gt;del&lt;/code&gt; 用于删除列。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;需要注意的是：通过索引方式返回的列只是相应数据的视图而已，并不是副本。因此，任何对返回的Series的就地修改全部会反应到源DataFrame上。通过Series的 &lt;code&gt;copy&lt;/code&gt; 方法可以显式的复制列。&lt;/p&gt;
+
+&lt;p&gt;除了接受由数组组成的字典外，DataFrame还可以接受其他很多中数据输入：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;嵌套字典，如：{&amp;lsquo;Nevada&amp;rsquo;: {2001: 2.4, 2002: 2.9}, &amp;lsquo;Ohio&amp;rsquo;: {2000: 1.5, 2001: 1.7, 2002: 3.6}}&lt;/li&gt;
+&lt;li&gt;二维ndarray：数据矩阵，还可以传入行标和列标&lt;/li&gt;
+&lt;li&gt;由数组、列表或元组组成的字典：每个序列会变成DataFrame的一列，所有序列的长度必须相同&lt;/li&gt;
+&lt;li&gt;NumPy的结构化／记录数组：类似于“由数组组成的字典”&lt;/li&gt;
+&lt;li&gt;由Series组成的字典：每个Series会成为一列，如果没有显式指定索引，则各Series的索引会被合并成结果的行索引&lt;/li&gt;
+&lt;li&gt;字典或Series的列表：各项将会成为DataFrame的一行，字典键或Series索引的并集将会成为DataFrame的列标&lt;/li&gt;
+&lt;li&gt;由列表或元组组成的列表：类似于“二维ndarray“&lt;/li&gt;
+&lt;li&gt;另一个DataFrame：该DataFrame的索引将会被沿用，除非显式的指定列其他索引&lt;/li&gt;
+&lt;li&gt;NumPy的MaskedArray：类似于“二维ndarray”的情况，只是掩码值在结果DataFrame中会变成NA/缺失值&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&#34;索引对象&#34;&gt;索引对象&lt;/h2&gt;
+
+&lt;p&gt;Index对象是Pandas数据模型的重要组成部分。&lt;/p&gt;
+
+&lt;p&gt;Pandas的索引对象负责管理轴标签和其他元数据（比如轴名称等）。构建Series或DataFrame时，所用到的任何数组或其他序列的标签都会被转换成一个Index对象。&lt;/p&gt;
+
+&lt;p&gt;Index对象是不可修改的（immutable），因此用户不能对其进行修改。Index对象的不可修改性非常重要，因为这样才能使Index对象在多个数据结构之间安全共享。&lt;/p&gt;
+
+&lt;p&gt;Pandas库中内置了一些常用的Index类：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Index：最泛化的Index对象，将轴标签表示为一个由Python对象组成的NumPy数组，&lt;/li&gt;
+&lt;li&gt;Int64Index：针对整数的特殊Index，&lt;/li&gt;
+&lt;li&gt;MultiIndex：“层次化”索引对象，表示单个轴上的多层索引，可以看作由元组组成的数组，&lt;/li&gt;
+&lt;li&gt;DatetimeIndex：存储纳秒级的时间戳（用NumPy的 &lt;code&gt;datetime64&lt;/code&gt; 类型表示），&lt;/li&gt;
+&lt;li&gt;PeriodIndex：针对Period数据（时间间隔）的特殊Index&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;除了这些常用的Index类型，Index甚至还可以被继承从而实现特别的轴索引功能。&lt;/p&gt;
+
+&lt;p&gt;Index对象长得很像数组，功能也很类似一个固定大小的集合。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;frame2.index.name = &#39;number&#39;
+frame2
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;div&gt;
+&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
+  &lt;thead&gt;
+    &lt;tr style=&#34;text-align: right;&#34;&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;year&lt;/th&gt;
+      &lt;th&gt;state&lt;/th&gt;
+      &lt;th&gt;pop&lt;/th&gt;
+      &lt;th&gt;debt&lt;/th&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;number&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;one&lt;/th&gt;
+      &lt;td&gt;2000&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;1.5&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;two&lt;/th&gt;
+      &lt;td&gt;2001&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;1.7&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;three&lt;/th&gt;
+      &lt;td&gt;2002&lt;/td&gt;
+      &lt;td&gt;Ohio&lt;/td&gt;
+      &lt;td&gt;3.6&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;four&lt;/th&gt;
+      &lt;td&gt;2001&lt;/td&gt;
+      &lt;td&gt;Nevada&lt;/td&gt;
+      &lt;td&gt;2.4&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;five&lt;/th&gt;
+      &lt;td&gt;2002&lt;/td&gt;
+      &lt;td&gt;Nevada&lt;/td&gt;
+      &lt;td&gt;2.9&lt;/td&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;&#39;state&#39; in frame2.columns or &#39;one&#39; in frame2.index
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;True
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;每个索引都有一些方法和属性，它们可用于设置逻辑并回答有关该索引所包含的数据的常见问题。下面是一些比较常用的函数：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;append：连接另一个Index对象，产生一个新的 Index&lt;/li&gt;
+&lt;li&gt;diff：计算差集，并得到一个新的 Index&lt;/li&gt;
+&lt;li&gt;intersection：计算交集&lt;/li&gt;
+&lt;li&gt;union：计算并集&lt;/li&gt;
+&lt;li&gt;isin：计算一个指示各值是否都包含在参数集合中的布尔型数组&lt;/li&gt;
+&lt;li&gt;delete：删除指定索引处的元素，并得到新的 Index&lt;/li&gt;
+&lt;li&gt;drop：删除传入的值，并得到新的 Index&lt;/li&gt;
+&lt;li&gt;insert：将元素插入到索引处，并得到新的 Index&lt;/li&gt;
+&lt;li&gt;is_monotonic：当各元素均大于等于前一个元素时，返回 True&lt;/li&gt;
+&lt;li&gt;is_unique：当Index没有重复值时，返回 True&lt;/li&gt;
+&lt;li&gt;unique：计算Index中唯一值的数组&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Pandas学习笔记（一）：CSV数据加载保存</title>
+      <link>http://hshsh.me/post/2016-04-12-python-pandas-notes-01/</link>
+      <pubDate>Tue, 12 Apr 2016 18:52:25 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2016-04-12-python-pandas-notes-01/</guid>
+      <description>
+
+&lt;h2 id=&#34;加载csv数据&#34;&gt;加载CSV数据&lt;/h2&gt;
+
+&lt;p&gt;很多数据都存储在CSV文件中，Pandas 为读取提供了一个强大的 &lt;code&gt;read_csv&lt;/code&gt; 函数，这个函数接受很多可选参数，通过参数控制数据加载的方式，以及一些基本的清理工作。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;pd.read_csv(filepath_or_buffer, sep=&#39;,&#39;, delimiter=None, header=&#39;infer&#39;,
+    names=None, index_col=None, usecols=None, squeeze=False, prefix=None,
+    mangle_dupe_cols=True, dtype=None, engine=None, converters=None,
+    true_values=None, false_values=None, skipinitialspace=False,
+    skiprows=None, skipfooter=None, nrows=None, na_values=None,
+    keep_default_na=True, na_filter=True, verbose=False, skip_blank_lines=True,
+    parse_dates=False, infer_datetime_format=False, keep_date_col=False,
+    date_parser=None, dayfirst=False, iterator=False, chunksize=None,
+    compression=&#39;infer&#39;, thousands=None, decimal=&#39;.&#39;, lineterminator=None,
+    quotechar=&#39;&amp;quot;&#39;, quoting=0, escapechar=None, comment=None, encoding=None,
+    dialect=None, tupleize_cols=False, error_bad_lines=True,
+    warn_bad_lines=True, skip_footer=0, doublequote=True,
+    delim_whitespace=False, as_recarray=False, compact_ints=False,
+    use_unsigned=False, low_memory=True, buffer_lines=None, memory_map=False,
+    float_precision=None)
+
+Returns
+    result : DataFrame or TextParser
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;很多参数都是非常有用的，简要记录一下（详细文档请参考 &lt;code&gt;help(pd.read_csv)&lt;/code&gt; 及官方文档）：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;filepath_or_buffer&lt;/code&gt;：参数名字本身反映了功能
+
+&lt;ul&gt;
+&lt;li&gt;这里可以接受一个文件名，或者一个URL，&lt;/li&gt;
+&lt;li&gt;也可以接受一个打开的文件句柄，&lt;/li&gt;
+&lt;li&gt;或者其他任何提供了&lt;code&gt;read&lt;/code&gt;方法的对象，&lt;/li&gt;
+&lt;li&gt;举个栗子：某个URL输出CSV，但是需要验证密码，那么就没法让 &lt;code&gt;read_csv&lt;/code&gt; 直接读取URL，但是可以使用 &lt;code&gt;urlopen&lt;/code&gt; 发送附带了验证信息的Request，并把返回的 Response 对象传给 &lt;code&gt;read_csv&lt;/code&gt; 函数，进而通过 Response 对象的 &lt;code&gt;read&lt;/code&gt; 方法加载数据；&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;sep&lt;/code&gt; 和 &lt;code&gt;delimiter&lt;/code&gt;：这两个参数是一个意思，&lt;code&gt;delimiter&lt;/code&gt;是&lt;code&gt;sep&lt;/code&gt;的别名；如果指定为 &lt;code&gt;\t&lt;/code&gt;（制表符）的话，就可以实现 &lt;code&gt;read_table&lt;/code&gt; 的默认功能；支持使用正则表达式来匹配某些不标准的CSV文件；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;header&lt;/code&gt; 和 &lt;code&gt;names&lt;/code&gt;：配合使用指定加载后的列名；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;parse_dates&lt;/code&gt;：boolean or list of ints or names or list of lists or dict, default False. 这个参数指定对CSV文件中日期序列的处理方式：
+
+&lt;ul&gt;
+&lt;li&gt;默认为False，原样加载，不解析日期时间，&lt;/li&gt;
+&lt;li&gt;可以为True，尝试解析日期索引，&lt;/li&gt;
+&lt;li&gt;可以为数字或 &lt;code&gt;names&lt;/code&gt; 的列表，解析指定的列为时间序列，&lt;/li&gt;
+&lt;li&gt;可以为以列表为元素的列表，解析每个子列表中的字段组合为时间序列，&lt;/li&gt;
+&lt;li&gt;可以为值为列表的字典，解析每个列表中的字段组合为时间序列，并命名为字典中对应的键值；&lt;/li&gt;
+&lt;/ul&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;date_parser&lt;/code&gt;：可以指定一个自定义函数解析日期；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;keep_date_col&lt;/code&gt;：解析出日期序列后，是否保留原来的列；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;dayfirst&lt;/code&gt;：boolean, default False, DD/MM format dates, international and European format；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;iterator&lt;/code&gt;：boolean, default False，Return TextFileReader object for iteration or getting chunks with &lt;code&gt;get_chunk()&lt;/code&gt;；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;encoding&lt;/code&gt;：指定读取或写入CSV文件时使用的字符集，支持 &lt;a href=&#34;https://docs.python.org/3/library/codecs.html#standard-encodings&#34;&gt;codecs 包中的标准字符集&lt;/a&gt;；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;index_col&lt;/code&gt;：数字、列名或列表，数字或列名指定某一列作为索引，列表制定某几列作为 DataFrame 的层次索引；&lt;/li&gt;
+&lt;li&gt;可以使用&lt;code&gt;skip_initialspace&lt;/code&gt;, &lt;code&gt;skiprows&lt;/code&gt;, &lt;code&gt;skipfooter&lt;/code&gt;, &lt;code&gt;comment&lt;/code&gt;, &lt;code&gt;float_precision&lt;/code&gt;等参数做一些基本的清理动作。&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;下面举个例子来简单演示一下 &lt;code&gt;parse_dates&lt;/code&gt; 和 &lt;code&gt;data_parser&lt;/code&gt; 的使用：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;import pandas as pd
+from tempfile import TemporaryFile
+
+mycsv = [&amp;quot;date,hour,A1,A2,A3,A4,A5,A6,date2,hour2&amp;quot;,
+    &amp;quot;20150102,1,117,85,109,132,166,113,20160102,2&amp;quot;,
+    &amp;quot;20150102,2,88,34,82,100,126,85,20160102,3&amp;quot;,
+    &amp;quot;20150102,3,48,54,38,50,55,46,20160102,4&amp;quot;,
+    &amp;quot;20150102,4,141,120,154,148,175,114,20160102,5&amp;quot;,
+    &amp;quot;20150102,5,91,64,74,71,84,70,20160102,6&amp;quot;,
+    &amp;quot;20150102,6,45,10,46,20,68,44,20160102,7&amp;quot;]
+
+tmp_csv_file = TemporaryFile()
+tmp_csv_file.write(&#39;\n&#39;.join(mycsv))
+tmp_csv_file.flush()
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;tmp_csv_file.seek(0)
+df = pd.read_csv(tmp_csv_file)
+df
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;div&gt;
+&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
+  &lt;thead&gt;
+    &lt;tr style=&#34;text-align: right;&#34;&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;date&lt;/th&gt;
+      &lt;th&gt;hour&lt;/th&gt;
+      &lt;th&gt;A1&lt;/th&gt;
+      &lt;th&gt;A2&lt;/th&gt;
+      &lt;th&gt;A3&lt;/th&gt;
+      &lt;th&gt;A4&lt;/th&gt;
+      &lt;th&gt;A5&lt;/th&gt;
+      &lt;th&gt;A6&lt;/th&gt;
+      &lt;th&gt;date2&lt;/th&gt;
+      &lt;th&gt;hour2&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;0&lt;/th&gt;
+      &lt;td&gt;20150102&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;117&lt;/td&gt;
+      &lt;td&gt;85&lt;/td&gt;
+      &lt;td&gt;109&lt;/td&gt;
+      &lt;td&gt;132&lt;/td&gt;
+      &lt;td&gt;166&lt;/td&gt;
+      &lt;td&gt;113&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;2&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;1&lt;/th&gt;
+      &lt;td&gt;20150102&lt;/td&gt;
+      &lt;td&gt;2&lt;/td&gt;
+      &lt;td&gt;88&lt;/td&gt;
+      &lt;td&gt;34&lt;/td&gt;
+      &lt;td&gt;82&lt;/td&gt;
+      &lt;td&gt;100&lt;/td&gt;
+      &lt;td&gt;126&lt;/td&gt;
+      &lt;td&gt;85&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;3&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2&lt;/th&gt;
+      &lt;td&gt;20150102&lt;/td&gt;
+      &lt;td&gt;3&lt;/td&gt;
+      &lt;td&gt;48&lt;/td&gt;
+      &lt;td&gt;54&lt;/td&gt;
+      &lt;td&gt;38&lt;/td&gt;
+      &lt;td&gt;50&lt;/td&gt;
+      &lt;td&gt;55&lt;/td&gt;
+      &lt;td&gt;46&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;3&lt;/th&gt;
+      &lt;td&gt;20150102&lt;/td&gt;
+      &lt;td&gt;4&lt;/td&gt;
+      &lt;td&gt;141&lt;/td&gt;
+      &lt;td&gt;120&lt;/td&gt;
+      &lt;td&gt;154&lt;/td&gt;
+      &lt;td&gt;148&lt;/td&gt;
+      &lt;td&gt;175&lt;/td&gt;
+      &lt;td&gt;114&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;5&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;4&lt;/th&gt;
+      &lt;td&gt;20150102&lt;/td&gt;
+      &lt;td&gt;5&lt;/td&gt;
+      &lt;td&gt;91&lt;/td&gt;
+      &lt;td&gt;64&lt;/td&gt;
+      &lt;td&gt;74&lt;/td&gt;
+      &lt;td&gt;71&lt;/td&gt;
+      &lt;td&gt;84&lt;/td&gt;
+      &lt;td&gt;70&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;6&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;5&lt;/th&gt;
+      &lt;td&gt;20150102&lt;/td&gt;
+      &lt;td&gt;6&lt;/td&gt;
+      &lt;td&gt;45&lt;/td&gt;
+      &lt;td&gt;10&lt;/td&gt;
+      &lt;td&gt;46&lt;/td&gt;
+      &lt;td&gt;20&lt;/td&gt;
+      &lt;td&gt;68&lt;/td&gt;
+      &lt;td&gt;44&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;7&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;p&gt;从上面的示例中，可以看到使用默认参数时，&lt;code&gt;read_csv&lt;/code&gt; 函数不会尝试解析日期，这样可以提高文件的加载速度。&lt;/p&gt;
+
+&lt;p&gt;但是第一列日期和第二列小时构成了我们需要的时间戳，加载了CSV后我们需要进行处理，那能不能在加载CSV的时候就直接解析出来呢？我们可以试一试 &lt;code&gt;parse_dates&lt;/code&gt; 参数，把第一列和第二列的索引组成一个列表传给 &lt;code&gt;parse_dates&lt;/code&gt; 参数：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;tmp_csv_file.seek(0)
+df = pd.read_csv(tmp_csv_file, parse_dates=[0, 1])
+df
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;div&gt;
+&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
+  &lt;thead&gt;
+    &lt;tr style=&#34;text-align: right;&#34;&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;date&lt;/th&gt;
+      &lt;th&gt;hour&lt;/th&gt;
+      &lt;th&gt;A1&lt;/th&gt;
+      &lt;th&gt;A2&lt;/th&gt;
+      &lt;th&gt;A3&lt;/th&gt;
+      &lt;th&gt;A4&lt;/th&gt;
+      &lt;th&gt;A5&lt;/th&gt;
+      &lt;th&gt;A6&lt;/th&gt;
+      &lt;th&gt;date2&lt;/th&gt;
+      &lt;th&gt;hour2&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;0&lt;/th&gt;
+      &lt;td&gt;2015-01-02&lt;/td&gt;
+      &lt;td&gt;1&lt;/td&gt;
+      &lt;td&gt;117&lt;/td&gt;
+      &lt;td&gt;85&lt;/td&gt;
+      &lt;td&gt;109&lt;/td&gt;
+      &lt;td&gt;132&lt;/td&gt;
+      &lt;td&gt;166&lt;/td&gt;
+      &lt;td&gt;113&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;2&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;1&lt;/th&gt;
+      &lt;td&gt;2015-01-02&lt;/td&gt;
+      &lt;td&gt;2&lt;/td&gt;
+      &lt;td&gt;88&lt;/td&gt;
+      &lt;td&gt;34&lt;/td&gt;
+      &lt;td&gt;82&lt;/td&gt;
+      &lt;td&gt;100&lt;/td&gt;
+      &lt;td&gt;126&lt;/td&gt;
+      &lt;td&gt;85&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;3&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2&lt;/th&gt;
+      &lt;td&gt;2015-01-02&lt;/td&gt;
+      &lt;td&gt;3&lt;/td&gt;
+      &lt;td&gt;48&lt;/td&gt;
+      &lt;td&gt;54&lt;/td&gt;
+      &lt;td&gt;38&lt;/td&gt;
+      &lt;td&gt;50&lt;/td&gt;
+      &lt;td&gt;55&lt;/td&gt;
+      &lt;td&gt;46&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;3&lt;/th&gt;
+      &lt;td&gt;2015-01-02&lt;/td&gt;
+      &lt;td&gt;4&lt;/td&gt;
+      &lt;td&gt;141&lt;/td&gt;
+      &lt;td&gt;120&lt;/td&gt;
+      &lt;td&gt;154&lt;/td&gt;
+      &lt;td&gt;148&lt;/td&gt;
+      &lt;td&gt;175&lt;/td&gt;
+      &lt;td&gt;114&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;5&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;4&lt;/th&gt;
+      &lt;td&gt;2015-01-02&lt;/td&gt;
+      &lt;td&gt;5&lt;/td&gt;
+      &lt;td&gt;91&lt;/td&gt;
+      &lt;td&gt;64&lt;/td&gt;
+      &lt;td&gt;74&lt;/td&gt;
+      &lt;td&gt;71&lt;/td&gt;
+      &lt;td&gt;84&lt;/td&gt;
+      &lt;td&gt;70&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;6&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;5&lt;/th&gt;
+      &lt;td&gt;2015-01-02&lt;/td&gt;
+      &lt;td&gt;6&lt;/td&gt;
+      &lt;td&gt;45&lt;/td&gt;
+      &lt;td&gt;10&lt;/td&gt;
+      &lt;td&gt;46&lt;/td&gt;
+      &lt;td&gt;20&lt;/td&gt;
+      &lt;td&gt;68&lt;/td&gt;
+      &lt;td&gt;44&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;7&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;p&gt;我们看到第一列被成功的解析成了日期数据，但是并没有按照我们想象的那样把第一列和第二列一起解析成一个日期时间对象。&lt;/p&gt;
+
+&lt;p&gt;这是因为我们&lt;strong&gt;传递参数的姿势不对&lt;/strong&gt;，正确的应该是这样：&lt;code&gt;parse_dates=[[0, 1]]&lt;/code&gt;，再试一下：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;tmp_csv_file.seek(0)
+df = pd.read_csv(tmp_csv_file, parse_dates=[[0, 1]])
+df
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;div&gt;
+&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
+  &lt;thead&gt;
+    &lt;tr style=&#34;text-align: right;&#34;&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;date_hour&lt;/th&gt;
+      &lt;th&gt;A1&lt;/th&gt;
+      &lt;th&gt;A2&lt;/th&gt;
+      &lt;th&gt;A3&lt;/th&gt;
+      &lt;th&gt;A4&lt;/th&gt;
+      &lt;th&gt;A5&lt;/th&gt;
+      &lt;th&gt;A6&lt;/th&gt;
+      &lt;th&gt;date2&lt;/th&gt;
+      &lt;th&gt;hour2&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;0&lt;/th&gt;
+      &lt;td&gt;20150102 1&lt;/td&gt;
+      &lt;td&gt;117&lt;/td&gt;
+      &lt;td&gt;85&lt;/td&gt;
+      &lt;td&gt;109&lt;/td&gt;
+      &lt;td&gt;132&lt;/td&gt;
+      &lt;td&gt;166&lt;/td&gt;
+      &lt;td&gt;113&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;2&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;1&lt;/th&gt;
+      &lt;td&gt;20150102 2&lt;/td&gt;
+      &lt;td&gt;88&lt;/td&gt;
+      &lt;td&gt;34&lt;/td&gt;
+      &lt;td&gt;82&lt;/td&gt;
+      &lt;td&gt;100&lt;/td&gt;
+      &lt;td&gt;126&lt;/td&gt;
+      &lt;td&gt;85&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;3&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2&lt;/th&gt;
+      &lt;td&gt;20150102 3&lt;/td&gt;
+      &lt;td&gt;48&lt;/td&gt;
+      &lt;td&gt;54&lt;/td&gt;
+      &lt;td&gt;38&lt;/td&gt;
+      &lt;td&gt;50&lt;/td&gt;
+      &lt;td&gt;55&lt;/td&gt;
+      &lt;td&gt;46&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;4&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;3&lt;/th&gt;
+      &lt;td&gt;20150102 4&lt;/td&gt;
+      &lt;td&gt;141&lt;/td&gt;
+      &lt;td&gt;120&lt;/td&gt;
+      &lt;td&gt;154&lt;/td&gt;
+      &lt;td&gt;148&lt;/td&gt;
+      &lt;td&gt;175&lt;/td&gt;
+      &lt;td&gt;114&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;5&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;4&lt;/th&gt;
+      &lt;td&gt;20150102 5&lt;/td&gt;
+      &lt;td&gt;91&lt;/td&gt;
+      &lt;td&gt;64&lt;/td&gt;
+      &lt;td&gt;74&lt;/td&gt;
+      &lt;td&gt;71&lt;/td&gt;
+      &lt;td&gt;84&lt;/td&gt;
+      &lt;td&gt;70&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;6&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;5&lt;/th&gt;
+      &lt;td&gt;20150102 6&lt;/td&gt;
+      &lt;td&gt;45&lt;/td&gt;
+      &lt;td&gt;10&lt;/td&gt;
+      &lt;td&gt;46&lt;/td&gt;
+      &lt;td&gt;20&lt;/td&gt;
+      &lt;td&gt;68&lt;/td&gt;
+      &lt;td&gt;44&lt;/td&gt;
+      &lt;td&gt;20160102&lt;/td&gt;
+      &lt;td&gt;7&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Opps！虽然第一列和第二列合并到一起了，但是并没有成功的解析成日期时间对象。因为这个格式真的没人看得懂是一个日期时间对象啊！！！&lt;/p&gt;
+
+&lt;p&gt;那就没有办法在加载CSV的时候就解析时间序列的方法了吗？&lt;/p&gt;
+
+&lt;p&gt;答案是有的。&lt;code&gt;read_csv&lt;/code&gt; 还有一个参数：&lt;code&gt;date_parser&lt;/code&gt;，我们可以自己写一个日期时间对象解析函数。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from datetime import datetime
+
+def my_date_parser(dt, hour):
+    return datetime(int(dt[0:4]), int(dt[4:6]), int(dt[6:8]), int(hour))
+
+tmp_csv_file.seek(0)
+df = pd.read_csv(tmp_csv_file, date_parser=my_date_parser,
+                 parse_dates={&#39;time&#39;: [0, 1], &#39;time2&#39;: [&#39;date2&#39;, &#39;hour2&#39;]},
+                 index_col=&#39;time&#39;)
+df
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;div&gt;
+&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
+  &lt;thead&gt;
+    &lt;tr style=&#34;text-align: right;&#34;&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;time2&lt;/th&gt;
+      &lt;th&gt;A1&lt;/th&gt;
+      &lt;th&gt;A2&lt;/th&gt;
+      &lt;th&gt;A3&lt;/th&gt;
+      &lt;th&gt;A4&lt;/th&gt;
+      &lt;th&gt;A5&lt;/th&gt;
+      &lt;th&gt;A6&lt;/th&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;time&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2015-01-02 01:00:00&lt;/th&gt;
+      &lt;td&gt;2016-01-02 02:00:00&lt;/td&gt;
+      &lt;td&gt;117&lt;/td&gt;
+      &lt;td&gt;85&lt;/td&gt;
+      &lt;td&gt;109&lt;/td&gt;
+      &lt;td&gt;132&lt;/td&gt;
+      &lt;td&gt;166&lt;/td&gt;
+      &lt;td&gt;113&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2015-01-02 02:00:00&lt;/th&gt;
+      &lt;td&gt;2016-01-02 03:00:00&lt;/td&gt;
+      &lt;td&gt;88&lt;/td&gt;
+      &lt;td&gt;34&lt;/td&gt;
+      &lt;td&gt;82&lt;/td&gt;
+      &lt;td&gt;100&lt;/td&gt;
+      &lt;td&gt;126&lt;/td&gt;
+      &lt;td&gt;85&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2015-01-02 03:00:00&lt;/th&gt;
+      &lt;td&gt;2016-01-02 04:00:00&lt;/td&gt;
+      &lt;td&gt;48&lt;/td&gt;
+      &lt;td&gt;54&lt;/td&gt;
+      &lt;td&gt;38&lt;/td&gt;
+      &lt;td&gt;50&lt;/td&gt;
+      &lt;td&gt;55&lt;/td&gt;
+      &lt;td&gt;46&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2015-01-02 04:00:00&lt;/th&gt;
+      &lt;td&gt;2016-01-02 05:00:00&lt;/td&gt;
+      &lt;td&gt;141&lt;/td&gt;
+      &lt;td&gt;120&lt;/td&gt;
+      &lt;td&gt;154&lt;/td&gt;
+      &lt;td&gt;148&lt;/td&gt;
+      &lt;td&gt;175&lt;/td&gt;
+      &lt;td&gt;114&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2015-01-02 05:00:00&lt;/th&gt;
+      &lt;td&gt;2016-01-02 06:00:00&lt;/td&gt;
+      &lt;td&gt;91&lt;/td&gt;
+      &lt;td&gt;64&lt;/td&gt;
+      &lt;td&gt;74&lt;/td&gt;
+      &lt;td&gt;71&lt;/td&gt;
+      &lt;td&gt;84&lt;/td&gt;
+      &lt;td&gt;70&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;2015-01-02 06:00:00&lt;/th&gt;
+      &lt;td&gt;2016-01-02 07:00:00&lt;/td&gt;
+      &lt;td&gt;45&lt;/td&gt;
+      &lt;td&gt;10&lt;/td&gt;
+      &lt;td&gt;46&lt;/td&gt;
+      &lt;td&gt;20&lt;/td&gt;
+      &lt;td&gt;68&lt;/td&gt;
+      &lt;td&gt;44&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Bingo！是不是搞定了。这样加载并解析时间序列的效率也比加载后使用循环或列表解析处理的效率高的多了。&lt;/p&gt;
+
+&lt;p&gt;上面这段示例代码中，还演示了解析多列时间序列，可以按照列的索引指定要解析的列，也可以按照列名来制定要解析的列，另外，还演示了使用 &lt;code&gt;index_col&lt;/code&gt; 参数指定 DataFrame 索引的用法。&lt;/p&gt;
+
+&lt;h2 id=&#34;保存csv数据&#34;&gt;保存CSV数据&lt;/h2&gt;
+
+&lt;p&gt;除了加载CSV数据很方便之外，Pandas 的 DataFrame 类一个很方便的 &lt;code&gt;to_csv&lt;/code&gt; 方法，可以把数据保存到CSV文件中。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;pd.DataFrame.to_csv(self, path_or_buf=None, sep=&#39;,&#39;, na_rep=&#39;&#39;,
+    float_format=None, columns=None, header=True, index=True, index_label=None,
+    mode=&#39;w&#39;, encoding=None, compression=None, quoting=None, quotechar=&#39;&amp;quot;&#39;, 
+    line_terminator=&#39;\n&#39;, chunksize=None, tupleize_cols=False, date_format=None,
+    doublequote=True, escapechar=None, decimal=&#39;.&#39;, **kwds)
+    
+unbound pandas.core.frame.DataFrame method:
+    Write DataFrame to a comma-separated values (csv) file
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;嗯，默认输出就是标准的逗号分割的CSV文件，跟 &lt;code&gt;read_csv&lt;/code&gt; 函数一样，这个函数同样有很多可选参数控制输出。&lt;/p&gt;
+
+&lt;p&gt;除了输出到CSV外，DataFrame 还有很多输出到其他格式的方法：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;[meth for meth in dir(pd.DataFrame) if meth.startswith(&#39;to_&#39;)]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;[&#39;to_clipboard&#39;,
+ &#39;to_csv&#39;,
+ &#39;to_dense&#39;,
+ &#39;to_dict&#39;,
+ &#39;to_excel&#39;,
+ &#39;to_gbq&#39;,
+ &#39;to_hdf&#39;,
+ &#39;to_html&#39;,
+ &#39;to_json&#39;,
+ &#39;to_latex&#39;,
+ &#39;to_msgpack&#39;,
+ &#39;to_panel&#39;,
+ &#39;to_period&#39;,
+ &#39;to_pickle&#39;,
+ &#39;to_records&#39;,
+ &#39;to_sparse&#39;,
+ &#39;to_sql&#39;,
+ &#39;to_stata&#39;,
+ &#39;to_string&#39;,
+ &#39;to_timestamp&#39;,
+ &#39;to_wide&#39;,
+ &#39;to_xarray&#39;]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;路漫漫其修远兮～～我将慢慢去求索～～&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

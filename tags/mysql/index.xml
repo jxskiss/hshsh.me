@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Mysql on hshsh&#39;s little site</title>
+    <link>http://hshsh.me/tags/mysql/</link>
+    <description>Recent content in Mysql on hshsh&#39;s little site</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Tue, 05 Apr 2016 14:48:25 +0800</lastBuildDate>
+    <atom:link href="http://hshsh.me/tags/mysql/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>MySQL配置文件参考</title>
+      <link>http://hshsh.me/post/2016-04-05-mysql-configuration-notes/</link>
+      <pubDate>Tue, 05 Apr 2016 14:48:25 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2016-04-05-mysql-configuration-notes/</guid>
+      <description>
+
+&lt;p&gt;最近公式生产环境中使用MySQL做数据存储，把数据库跑起来不复杂，但是各种参数的设置调优可真是技术活。&lt;/p&gt;
+
+&lt;p&gt;这是配置MySQL的学习笔记，大部分内容出自：&lt;a href=&#34;http://wsgzao.github.io/post/ltmp/&#34;&gt;http://wsgzao.github.io/post/ltmp/&lt;/a&gt;&lt;/p&gt;
+
+&lt;h2 id=&#34;mysql数据库配置&#34;&gt;MySQL数据库配置&lt;/h2&gt;
+
+&lt;h3 id=&#34;mysql客户端配置&#34;&gt;MySQL客户端配置：&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ini&#34;&gt;[client]
+# 客户端连接默认字符集
+default-character-set = utf8
+port = 3306
+socket = /tmp/mysql.sock
+
+[mysql]
+#prompt=&amp;quot;(\u:HOSTNAME:)[\d]&amp;gt; &amp;quot;
+#mysql提示符中显示当前用户、数据库、时间等信息
+prompt=&amp;quot;\u@\h \R:\m:\s [\d]&amp;gt; &amp;quot;
+#no-auto-rehash  # 自动补全功能，取消自动补全可以提高启动速度
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;mysql服务端配置&#34;&gt;MySQL服务端配置&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ini&#34;&gt;[mysqld]
+# 唯一的服务标识号，主从同步会涉及
+server-id = 1
+port = 3306
+user = mysql
+basedir = /app/local/mysql
+datadir = /app/data/mysql/data
+socket = /tmp/mysql.sock
+log-error = /app/data/mysql/mysql_error.log
+pid-file = /app/data/mysql/mysql.pid
+sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+
+# 默认存储引擎
+default-storage-engine = InnoDB
+# 设置最大并发连接数，如果前端程序是PHP，可适当加大，但不可过大。
+# 如果前端程序采用连接池，可适当调小，避免连接数过大
+max_connections = 512
+# 最大连接错误次数，可适当加大，防止频繁连接错误后，前端host被mysql拒绝掉
+max_connect_errors = 100000
+# 所有线程所打开表的数量
+table_open_cache = 512
+# 不允许外部文件级别的锁. 打开文件锁会对性能造成负面影响
+external-locking = FALSE
+# 服务所能处理的请求包的最大大小以及服务所能处理的最大的请求大小
+max_allowed_packet = 32M
+# 启用慢查询日志
+slow_query_log = 1
+slow_query_log_file = /app/data/mysql/slow.log
+# MySQL打开的文件描述符限制
+open_files_limit = 10240
+# 操作系统在监听队列中所能保持的连接数
+back_log = 600
+# 每个连接都会分配的一些排序、连接等缓冲
+sort_buffer_size = 16M
+join_buffer_size = 16M
+read_buffer_size = 16M
+read_rnd_buffer_size = 16M
+# 在cache中保留多少线程用于重用
+thread_cache_size = 300
+# 查询缓冲     
+query_cache_size = 128M
+# 只有小于此设定值的结果才会被缓冲     
+query_cache_limit = 4M
+# 设置查询缓存分配内存的最小单位
+query_cache_min_res_unit = 2k
+# 线程使用的堆大小
+thread_stack = 512K
+# 设置事务隔离级别为 READ-COMMITED，提高事务效率，通常都满足事务一致性要求
+transaction_isolation = READ-COMMITTED
+# 临时表的最大大小
+tmp_table_size = 256M
+# 独立的内存表所允许的最大容量
+max_heap_table_size = 256M
+# 设置慢查询阀值
+long_query_time = 3
+# 表示slave将复制事件写进自己的二进制日志
+log-slave-updates
+# 打开二进制日志功能
+log-bin = /app/data/mysql/binlog/binlog
+sync_binlog = 1
+# 在一个事务中binlog为了记录SQL状态所持有的cache大小  
+binlog_cache_size = 4M
+# 设置混合模式
+binlog_format = MIXED
+# 表示的是binlog能够使用的最大cache 内存大小
+max_binlog_cache_size = 8M
+# binlog最大值
+max_binlog_size = 1G
+# 启用中继日志
+relay-log-index = /app/data/mysql/relaylog/relaylog
+relay-log-info-file = /app/data/mysql/relaylog/relaylog
+relay-log = /app/data/mysql/relaylog/relaylog
+# 设置了只保留7天binlog
+expire_logs_days = 7
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;myisam-相关选项&#34;&gt;MyISAM 相关选项&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ini&#34;&gt;#关键词缓冲的大小, 一般用来缓冲MyISAM表的索引块
+key_buffer_size = 128M
+#排序缓存
+read_rnd_buffer_size = 64M
+#限制每个进程中缓冲树的字节数
+bulk_insert_buffer_size = 256M
+#MyISAM表发生变化时重新排序所需的缓冲
+myisam_sort_buffer_size = 256M
+#MySQL重建索引时所允许的最大临时文件的大小
+myisam_max_sort_file_size = 10G
+#如果一个表拥有超过一个索引, MyISAM 可以通过并行排序使用超过一个线程去修复他们
+myisam_repair_threads = 1
+#自动检查和修复没有适当关闭的 MyISAM 表
+myisam_recover
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;innodb-相关选项&#34;&gt;InnoDB 相关选项&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ini&#34;&gt;# InnoDB存储数据字典、内部数据结构的缓冲池，16MB 已经足够大了     
+innodb_additional_mem_pool_size = 16M
+# InnoDB用于缓存数据、索引、锁、插入缓冲、数据字典等
+# 如果是专用的DB服务器，且以InnoDB引擎为主的场景，通常可设置物理内存的50%
+# 如果是非专用DB服务器，可以先尝试设置成内存的1/4，如果有问题再调整
+innodb_buffer_pool_size = 4G
+# InnoDB共享表空间初始化大小，默认是 10MB，也非常坑X，改成 1GB，并且自动扩展
+innodb_data_file_path = ibdata1:1G:autoextend
+# 如果将此参数设置为1，将在每次提交事务后将日志写入磁盘，能较好保护数据可靠性。
+# 为提供性能可以设置为0或2，但要承担在发生故障时丢失数据的风险
+innodb_flush_log_at_trx_commit = 1
+# InnoDB的log buffer，通常设置为 64MB 就足够了
+innodb_log_buffer_size = 64M
+# InnoDB redo log大小，通常设置256MB 就足够了
+innodb_log_file_size = 256M
+# InnoDB redo log文件组，通常设置为 2 就足够了
+innodb_log_files_in_group = 2
+# Buffer_Pool中Dirty_Page所占的数量，直接影响InnoDB的关闭时间
+innodb_max_dirty_pages_pct = 90
+# 启用InnoDB的独立表空间模式，便于管理
+innodb_file_per_table = 1
+# 控制innodb是否对gap加锁
+innodb_locks_unsafe_for_binlog = 0
+# 设置连接超时阀值，如果前端程序采用短连接，建议缩短这2个值
+# 如果前端程序采用长连接，可直接注释掉这两个选项，是用默认配置(8小时)
+interactive_timeout = 120
+wait_timeout = 120
+# 不再进行反解析(ip不反解成域名)，这样可以加快数据库的反应时间
+skip-name-resolve
+# 主从复制跳过错误
+slave-skip-errors = 1032,1062,126,1114,1146,1048,1396
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;其他配置选项&#34;&gt;其他配置选项&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ini&#34;&gt;[mysqldump]
+# 不要在将内存中的整个结果写入磁盘之前缓存. 在导出非常巨大的表时需要此项
+quick
+max_allowed_packet = 32M
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;参考资料&#34;&gt;参考资料&lt;/h2&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&#34;http://wsgzao.github.io/post/ltmp/&#34;&gt;LTMP手动编译安装以及全自动化部署实践&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://dev.mysql.com/doc/refman/5.7/en/charset-configuration.html&#34;&gt;MySQL 5.7 Reference Manual: Character Set Configuration&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

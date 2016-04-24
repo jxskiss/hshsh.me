@@ -1,0 +1,612 @@
+	<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn" lang="zh-cn">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title> Pandas学习笔记（一）：CSV数据加载保存 &middot; hshsh&#39;s little site </title>
+
+  
+  <link rel="stylesheet" href="http://hshsh.me/css/poole.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/syntax.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/hyde.css">
+  <link rel="stylesheet" href="https://fonts.useso.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+  <link rel="stylesheet" href="//cdn.bootcss.com/highlight.js/9.2.0/styles/default.min.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/style.css">
+
+  
+  <script type="text/javascript" src="//cdn.bootcss.com/highlight.js/9.2.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="hshsh&#39;s little site" />
+</head>
+
+	<body class="">
+		<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="http://hshsh.me/"><h1>hshsh&#39;s little site</h1></a>
+      <p class="lead">
+       假行僧 
+      </p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li><a href="/">Home</a> </li>
+      <li><a href="/post/"><span class="navlink"> Blog </span></a></li>
+    </ul>
+
+    <p>&copy; 2014 - 2016<br>All rights reserved. </p>
+  </div>
+</div>
+
+
+		<div class="content container">
+			<div class="post">
+			 	<h1>Pandas学习笔记（一）：CSV数据加载保存</h1>
+			  <span class="post-date">Tue, Apr 12, 2016</span>
+			      
+
+<h2 id="加载csv数据">加载CSV数据</h2>
+
+<p>很多数据都存储在CSV文件中，Pandas 为读取提供了一个强大的 <code>read_csv</code> 函数，这个函数接受很多可选参数，通过参数控制数据加载的方式，以及一些基本的清理工作。</p>
+
+<pre><code class="language-python">pd.read_csv(filepath_or_buffer, sep=',', delimiter=None, header='infer',
+    names=None, index_col=None, usecols=None, squeeze=False, prefix=None,
+    mangle_dupe_cols=True, dtype=None, engine=None, converters=None,
+    true_values=None, false_values=None, skipinitialspace=False,
+    skiprows=None, skipfooter=None, nrows=None, na_values=None,
+    keep_default_na=True, na_filter=True, verbose=False, skip_blank_lines=True,
+    parse_dates=False, infer_datetime_format=False, keep_date_col=False,
+    date_parser=None, dayfirst=False, iterator=False, chunksize=None,
+    compression='infer', thousands=None, decimal='.', lineterminator=None,
+    quotechar='&quot;', quoting=0, escapechar=None, comment=None, encoding=None,
+    dialect=None, tupleize_cols=False, error_bad_lines=True,
+    warn_bad_lines=True, skip_footer=0, doublequote=True,
+    delim_whitespace=False, as_recarray=False, compact_ints=False,
+    use_unsigned=False, low_memory=True, buffer_lines=None, memory_map=False,
+    float_precision=None)
+
+Returns
+    result : DataFrame or TextParser
+</code></pre>
+
+<p>很多参数都是非常有用的，简要记录一下（详细文档请参考 <code>help(pd.read_csv)</code> 及官方文档）：</p>
+
+<ol>
+<li><code>filepath_or_buffer</code>：参数名字本身反映了功能
+
+<ul>
+<li>这里可以接受一个文件名，或者一个URL，</li>
+<li>也可以接受一个打开的文件句柄，</li>
+<li>或者其他任何提供了<code>read</code>方法的对象，</li>
+<li>举个栗子：某个URL输出CSV，但是需要验证密码，那么就没法让 <code>read_csv</code> 直接读取URL，但是可以使用 <code>urlopen</code> 发送附带了验证信息的Request，并把返回的 Response 对象传给 <code>read_csv</code> 函数，进而通过 Response 对象的 <code>read</code> 方法加载数据；</li>
+</ul></li>
+<li><code>sep</code> 和 <code>delimiter</code>：这两个参数是一个意思，<code>delimiter</code>是<code>sep</code>的别名；如果指定为 <code>\t</code>（制表符）的话，就可以实现 <code>read_table</code> 的默认功能；支持使用正则表达式来匹配某些不标准的CSV文件；</li>
+<li><code>header</code> 和 <code>names</code>：配合使用指定加载后的列名；</li>
+<li><code>parse_dates</code>：boolean or list of ints or names or list of lists or dict, default False. 这个参数指定对CSV文件中日期序列的处理方式：
+
+<ul>
+<li>默认为False，原样加载，不解析日期时间，</li>
+<li>可以为True，尝试解析日期索引，</li>
+<li>可以为数字或 <code>names</code> 的列表，解析指定的列为时间序列，</li>
+<li>可以为以列表为元素的列表，解析每个子列表中的字段组合为时间序列，</li>
+<li>可以为值为列表的字典，解析每个列表中的字段组合为时间序列，并命名为字典中对应的键值；</li>
+</ul></li>
+<li><code>date_parser</code>：可以指定一个自定义函数解析日期；</li>
+<li><code>keep_date_col</code>：解析出日期序列后，是否保留原来的列；</li>
+<li><code>dayfirst</code>：boolean, default False, DD/MM format dates, international and European format；</li>
+<li><code>iterator</code>：boolean, default False，Return TextFileReader object for iteration or getting chunks with <code>get_chunk()</code>；</li>
+<li><code>encoding</code>：指定读取或写入CSV文件时使用的字符集，支持 <a href="https://docs.python.org/3/library/codecs.html#standard-encodings">codecs 包中的标准字符集</a>；</li>
+<li><code>index_col</code>：数字、列名或列表，数字或列名指定某一列作为索引，列表制定某几列作为 DataFrame 的层次索引；</li>
+<li>可以使用<code>skip_initialspace</code>, <code>skiprows</code>, <code>skipfooter</code>, <code>comment</code>, <code>float_precision</code>等参数做一些基本的清理动作。</li>
+</ol>
+
+<p>下面举个例子来简单演示一下 <code>parse_dates</code> 和 <code>data_parser</code> 的使用：</p>
+
+<pre><code class="language-python">import pandas as pd
+from tempfile import TemporaryFile
+
+mycsv = [&quot;date,hour,A1,A2,A3,A4,A5,A6,date2,hour2&quot;,
+    &quot;20150102,1,117,85,109,132,166,113,20160102,2&quot;,
+    &quot;20150102,2,88,34,82,100,126,85,20160102,3&quot;,
+    &quot;20150102,3,48,54,38,50,55,46,20160102,4&quot;,
+    &quot;20150102,4,141,120,154,148,175,114,20160102,5&quot;,
+    &quot;20150102,5,91,64,74,71,84,70,20160102,6&quot;,
+    &quot;20150102,6,45,10,46,20,68,44,20160102,7&quot;]
+
+tmp_csv_file = TemporaryFile()
+tmp_csv_file.write('\n'.join(mycsv))
+tmp_csv_file.flush()
+</code></pre>
+
+<pre><code class="language-python">tmp_csv_file.seek(0)
+df = pd.read_csv(tmp_csv_file)
+df
+</code></pre>
+
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>date</th>
+      <th>hour</th>
+      <th>A1</th>
+      <th>A2</th>
+      <th>A3</th>
+      <th>A4</th>
+      <th>A5</th>
+      <th>A6</th>
+      <th>date2</th>
+      <th>hour2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>20150102</td>
+      <td>1</td>
+      <td>117</td>
+      <td>85</td>
+      <td>109</td>
+      <td>132</td>
+      <td>166</td>
+      <td>113</td>
+      <td>20160102</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>20150102</td>
+      <td>2</td>
+      <td>88</td>
+      <td>34</td>
+      <td>82</td>
+      <td>100</td>
+      <td>126</td>
+      <td>85</td>
+      <td>20160102</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>20150102</td>
+      <td>3</td>
+      <td>48</td>
+      <td>54</td>
+      <td>38</td>
+      <td>50</td>
+      <td>55</td>
+      <td>46</td>
+      <td>20160102</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>20150102</td>
+      <td>4</td>
+      <td>141</td>
+      <td>120</td>
+      <td>154</td>
+      <td>148</td>
+      <td>175</td>
+      <td>114</td>
+      <td>20160102</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>20150102</td>
+      <td>5</td>
+      <td>91</td>
+      <td>64</td>
+      <td>74</td>
+      <td>71</td>
+      <td>84</td>
+      <td>70</td>
+      <td>20160102</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>20150102</td>
+      <td>6</td>
+      <td>45</td>
+      <td>10</td>
+      <td>46</td>
+      <td>20</td>
+      <td>68</td>
+      <td>44</td>
+      <td>20160102</td>
+      <td>7</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>从上面的示例中，可以看到使用默认参数时，<code>read_csv</code> 函数不会尝试解析日期，这样可以提高文件的加载速度。</p>
+
+<p>但是第一列日期和第二列小时构成了我们需要的时间戳，加载了CSV后我们需要进行处理，那能不能在加载CSV的时候就直接解析出来呢？我们可以试一试 <code>parse_dates</code> 参数，把第一列和第二列的索引组成一个列表传给 <code>parse_dates</code> 参数：</p>
+
+<pre><code class="language-python">tmp_csv_file.seek(0)
+df = pd.read_csv(tmp_csv_file, parse_dates=[0, 1])
+df
+</code></pre>
+
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>date</th>
+      <th>hour</th>
+      <th>A1</th>
+      <th>A2</th>
+      <th>A3</th>
+      <th>A4</th>
+      <th>A5</th>
+      <th>A6</th>
+      <th>date2</th>
+      <th>hour2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2015-01-02</td>
+      <td>1</td>
+      <td>117</td>
+      <td>85</td>
+      <td>109</td>
+      <td>132</td>
+      <td>166</td>
+      <td>113</td>
+      <td>20160102</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2015-01-02</td>
+      <td>2</td>
+      <td>88</td>
+      <td>34</td>
+      <td>82</td>
+      <td>100</td>
+      <td>126</td>
+      <td>85</td>
+      <td>20160102</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2015-01-02</td>
+      <td>3</td>
+      <td>48</td>
+      <td>54</td>
+      <td>38</td>
+      <td>50</td>
+      <td>55</td>
+      <td>46</td>
+      <td>20160102</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2015-01-02</td>
+      <td>4</td>
+      <td>141</td>
+      <td>120</td>
+      <td>154</td>
+      <td>148</td>
+      <td>175</td>
+      <td>114</td>
+      <td>20160102</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2015-01-02</td>
+      <td>5</td>
+      <td>91</td>
+      <td>64</td>
+      <td>74</td>
+      <td>71</td>
+      <td>84</td>
+      <td>70</td>
+      <td>20160102</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>2015-01-02</td>
+      <td>6</td>
+      <td>45</td>
+      <td>10</td>
+      <td>46</td>
+      <td>20</td>
+      <td>68</td>
+      <td>44</td>
+      <td>20160102</td>
+      <td>7</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>我们看到第一列被成功的解析成了日期数据，但是并没有按照我们想象的那样把第一列和第二列一起解析成一个日期时间对象。</p>
+
+<p>这是因为我们<strong>传递参数的姿势不对</strong>，正确的应该是这样：<code>parse_dates=[[0, 1]]</code>，再试一下：</p>
+
+<pre><code class="language-python">tmp_csv_file.seek(0)
+df = pd.read_csv(tmp_csv_file, parse_dates=[[0, 1]])
+df
+</code></pre>
+
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>date_hour</th>
+      <th>A1</th>
+      <th>A2</th>
+      <th>A3</th>
+      <th>A4</th>
+      <th>A5</th>
+      <th>A6</th>
+      <th>date2</th>
+      <th>hour2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>20150102 1</td>
+      <td>117</td>
+      <td>85</td>
+      <td>109</td>
+      <td>132</td>
+      <td>166</td>
+      <td>113</td>
+      <td>20160102</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>20150102 2</td>
+      <td>88</td>
+      <td>34</td>
+      <td>82</td>
+      <td>100</td>
+      <td>126</td>
+      <td>85</td>
+      <td>20160102</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>20150102 3</td>
+      <td>48</td>
+      <td>54</td>
+      <td>38</td>
+      <td>50</td>
+      <td>55</td>
+      <td>46</td>
+      <td>20160102</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>20150102 4</td>
+      <td>141</td>
+      <td>120</td>
+      <td>154</td>
+      <td>148</td>
+      <td>175</td>
+      <td>114</td>
+      <td>20160102</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>20150102 5</td>
+      <td>91</td>
+      <td>64</td>
+      <td>74</td>
+      <td>71</td>
+      <td>84</td>
+      <td>70</td>
+      <td>20160102</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>20150102 6</td>
+      <td>45</td>
+      <td>10</td>
+      <td>46</td>
+      <td>20</td>
+      <td>68</td>
+      <td>44</td>
+      <td>20160102</td>
+      <td>7</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>Opps！虽然第一列和第二列合并到一起了，但是并没有成功的解析成日期时间对象。因为这个格式真的没人看得懂是一个日期时间对象啊！！！</p>
+
+<p>那就没有办法在加载CSV的时候就解析时间序列的方法了吗？</p>
+
+<p>答案是有的。<code>read_csv</code> 还有一个参数：<code>date_parser</code>，我们可以自己写一个日期时间对象解析函数。</p>
+
+<pre><code class="language-python">from datetime import datetime
+
+def my_date_parser(dt, hour):
+    return datetime(int(dt[0:4]), int(dt[4:6]), int(dt[6:8]), int(hour))
+
+tmp_csv_file.seek(0)
+df = pd.read_csv(tmp_csv_file, date_parser=my_date_parser,
+                 parse_dates={'time': [0, 1], 'time2': ['date2', 'hour2']},
+                 index_col='time')
+df
+</code></pre>
+
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>time2</th>
+      <th>A1</th>
+      <th>A2</th>
+      <th>A3</th>
+      <th>A4</th>
+      <th>A5</th>
+      <th>A6</th>
+    </tr>
+    <tr>
+      <th>time</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2015-01-02 01:00:00</th>
+      <td>2016-01-02 02:00:00</td>
+      <td>117</td>
+      <td>85</td>
+      <td>109</td>
+      <td>132</td>
+      <td>166</td>
+      <td>113</td>
+    </tr>
+    <tr>
+      <th>2015-01-02 02:00:00</th>
+      <td>2016-01-02 03:00:00</td>
+      <td>88</td>
+      <td>34</td>
+      <td>82</td>
+      <td>100</td>
+      <td>126</td>
+      <td>85</td>
+    </tr>
+    <tr>
+      <th>2015-01-02 03:00:00</th>
+      <td>2016-01-02 04:00:00</td>
+      <td>48</td>
+      <td>54</td>
+      <td>38</td>
+      <td>50</td>
+      <td>55</td>
+      <td>46</td>
+    </tr>
+    <tr>
+      <th>2015-01-02 04:00:00</th>
+      <td>2016-01-02 05:00:00</td>
+      <td>141</td>
+      <td>120</td>
+      <td>154</td>
+      <td>148</td>
+      <td>175</td>
+      <td>114</td>
+    </tr>
+    <tr>
+      <th>2015-01-02 05:00:00</th>
+      <td>2016-01-02 06:00:00</td>
+      <td>91</td>
+      <td>64</td>
+      <td>74</td>
+      <td>71</td>
+      <td>84</td>
+      <td>70</td>
+    </tr>
+    <tr>
+      <th>2015-01-02 06:00:00</th>
+      <td>2016-01-02 07:00:00</td>
+      <td>45</td>
+      <td>10</td>
+      <td>46</td>
+      <td>20</td>
+      <td>68</td>
+      <td>44</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>Bingo！是不是搞定了。这样加载并解析时间序列的效率也比加载后使用循环或列表解析处理的效率高的多了。</p>
+
+<p>上面这段示例代码中，还演示了解析多列时间序列，可以按照列的索引指定要解析的列，也可以按照列名来制定要解析的列，另外，还演示了使用 <code>index_col</code> 参数指定 DataFrame 索引的用法。</p>
+
+<h2 id="保存csv数据">保存CSV数据</h2>
+
+<p>除了加载CSV数据很方便之外，Pandas 的 DataFrame 类一个很方便的 <code>to_csv</code> 方法，可以把数据保存到CSV文件中。</p>
+
+<pre><code class="language-python">pd.DataFrame.to_csv(self, path_or_buf=None, sep=',', na_rep='',
+    float_format=None, columns=None, header=True, index=True, index_label=None,
+    mode='w', encoding=None, compression=None, quoting=None, quotechar='&quot;', 
+    line_terminator='\n', chunksize=None, tupleize_cols=False, date_format=None,
+    doublequote=True, escapechar=None, decimal='.', **kwds)
+    
+unbound pandas.core.frame.DataFrame method:
+    Write DataFrame to a comma-separated values (csv) file
+</code></pre>
+
+<p>嗯，默认输出就是标准的逗号分割的CSV文件，跟 <code>read_csv</code> 函数一样，这个函数同样有很多可选参数控制输出。</p>
+
+<p>除了输出到CSV外，DataFrame 还有很多输出到其他格式的方法：</p>
+
+<pre><code class="language-python">[meth for meth in dir(pd.DataFrame) if meth.startswith('to_')]
+</code></pre>
+
+<pre><code>['to_clipboard',
+ 'to_csv',
+ 'to_dense',
+ 'to_dict',
+ 'to_excel',
+ 'to_gbq',
+ 'to_hdf',
+ 'to_html',
+ 'to_json',
+ 'to_latex',
+ 'to_msgpack',
+ 'to_panel',
+ 'to_period',
+ 'to_pickle',
+ 'to_records',
+ 'to_sparse',
+ 'to_sql',
+ 'to_stata',
+ 'to_string',
+ 'to_timestamp',
+ 'to_wide',
+ 'to_xarray']
+</code></pre>
+
+<p>路漫漫其修远兮～～我将慢慢去求索～～</p>
+
+			</div>
+
+			
+		</div>
+
+  </body>
+</html>
