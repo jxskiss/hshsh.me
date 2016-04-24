@@ -1,2 +1,3 @@
 *.py[cdo]  
 .idea/
+data/ipynbs/.ipynb_checkpoints/
