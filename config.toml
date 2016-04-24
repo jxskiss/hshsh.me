@@ -1,0 +1,12 @@
+baseurl = "http://hshsh.me/"
+languageCode = "zh-cn"
+title = "hshsh's little site"
+theme = "hyde"
+
+[Taxonomies]
+    tag = "tags"
+
+[params]
+    author = "jxskiss"
+    description = "假行僧"
+    motto = "Talk is cheap. SHow me the code."
