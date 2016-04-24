@@ -1,7 +1,7 @@
 +++
-Categories = ["Development", "GoLang"]
+Categories = ["Hugo"]
 Description = ""
-Tags = ["development", "golang"]
+Tags = ["hugo"]
 date = "2016-04-24T11:36:14+08:00"
 menu = "main"
 title = "welcome to my hugo blog"
