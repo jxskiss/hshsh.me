@@ -8,7 +8,7 @@ title = "[转载] Python类引入机制"
 
 +++
 
-本文转载自[刘畅的博客](http://liuchang0812.com)，[文章地址](https://github.com/Liuchang0812/slides/tree/master/pycon2015cn)。本文所涉及到的代码在[github](https://github.com/Liuchang0812/slides/tree/master/pycon2015cn)上。
+本文转载自[刘畅的博客](http://liuchang0812.com)，原文地址：<https://github.com/Liuchang0812/slides/tree/master/pycon2015cn>。本文所涉及到的代码在[github](https://github.com/Liuchang0812/slides/tree/master/pycon2015cn)上。
 
 
 ## 概述
