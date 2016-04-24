@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>hshsh&#39;s little site</title>
+    <link>http://hshsh.me/</link>
+    <description>Recent content on hshsh&#39;s little site</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Sun, 24 Apr 2016 11:36:14 +0800</lastBuildDate>
+    <atom:link href="http://hshsh.me/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>welcome to my hugo blog</title>
+      <link>http://hshsh.me/post/welcome-to-my-hugo-blog/</link>
+      <pubDate>Sun, 24 Apr 2016 11:36:14 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/welcome-to-my-hugo-blog/</guid>
+      <description>&lt;p&gt;Welcome to my new &lt;a href=&#34;https://gohugo.io/&#34;&gt;Hugo&lt;/a&gt; blog.&lt;/p&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
