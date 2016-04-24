@@ -1,0 +1,11 @@
+/* rewrite hyde's style */
+.sidebar-about h1 {font-size: 2.75rem;}
+pre {padding: 0;}
+pre code {font-size: 90%;}
+table {font-size: 90%;}
+table th, table td {text-align: left;}
+
+/* custom styles */
+div.posts ul {list-style-type: none;}
+div.posts time {float:right;}
+.hljs {padding: 1em;}

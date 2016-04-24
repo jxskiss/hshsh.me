@@ -1,0 +1,379 @@
+	<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn" lang="zh-cn">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.16-DEV" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title> SQLAlchemy学习笔记（一） &middot; hshsh&#39;s little site </title>
+
+  
+  <link rel="stylesheet" href="http://hshsh.me/css/poole.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/syntax.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/hyde.css">
+  <link rel="stylesheet" href="https://fonts.useso.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+  <link rel="stylesheet" href="//cdn.bootcss.com/highlight.js/9.2.0/styles/default.min.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/style.css">
+
+  
+  <script type="text/javascript" src="//cdn.bootcss.com/highlight.js/9.2.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="hshsh&#39;s little site" />
+</head>
+
+	<body class="">
+		<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="http://hshsh.me/"><h1>hshsh&#39;s little site</h1></a>
+      <p class="lead">
+       假行僧 
+      </p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li><a href="/">Home</a> </li>
+      <li><a href="/post/"><span class="navlink"> Blog </span></a></li>
+    </ul>
+
+    <p>&copy; 2014 - 2016<br>All rights reserved. </p>
+  </div>
+</div>
+
+
+		<div class="content container">
+			<div class="post">
+			 	<h1>SQLAlchemy学习笔记（一）</h1>
+			  <span class="post-date">Mon, Apr 4, 2016</span>
+			      
+
+<p>这篇笔记部分内容来自网络<sup class="footnote-ref" id="fnref:fn-copyright"><a rel="footnote" href="#fn:fn-copyright">1</a></sup>，部分来自对《Essential SQLAlchemy》的学习和使用经验。</p>
+
+<hr />
+
+<p><a href="http://www.sqlalchemy.org/">SQLAlchemy</a>是 Python 编程语言下的一款开源软件。提供了SQL工具包及对象关系映射（ORM）工具，使用MIT许可证发行。</p>
+
+<p>SQLAlchemy“采用简单的Python语言，为高效和高性能的数据库访问设计，实现了完整的企业级持久模型”。</p>
+
+<p>SQLAlchemy的理念是，SQL数据库的量级和性能重要于对象集合；而对象集合的抽象又重要于表和行。因此，SQLAlchmey 采用了类似于Java里 Hibernate 的数据映射模型，而不是其他ORM框架采用的 Active Record 模型。不过，Elixir 和 declarative 等可选插件可以让用户使用声明语法。</p>
+
+<p>SQLAlchemy首次发行于2006年2月，并迅速地在Python社区中最广泛使用的ORM工具之一，不亚于Django的ORM框架。</p>
+
+<p>以上摘自<a href="https://zh.wikipedia.org/wiki/SQLAlchemy">维基百科</a>。</p>
+
+<hr />
+
+<p>使用<code>SQLAlchemy</code>有三种方式：</p>
+
+<ul>
+<li>使用 Raw SQL</li>
+<li>使用 SQL Expression</li>
+<li>使用 ORM</li>
+</ul>
+
+<p>前两种方式可以统称为 core 方式。</p>
+
+<p>对于绝大多数应用，推荐使用 <code>SQLAlchemy</code>，即使是使用 Raw SQL，也可以带来如下好处。</p>
+
+<ol>
+<li>内建数据库连接池。<strong>注意：</strong>如果是 SQLAlchemy + cx_oracle 的话，需要禁用 Connection Pool，否则会有异常。方法是设置<code>sqlalchemy.poolclass</code>为<code>sqlalchemy.pool.NullPool</code></li>
+<li>强大的日志功能（log）</li>
+<li>数据库无关的写法，包括：SQL参数写法、LIMIT语法等</li>
+<li>特别提一下，WHERE 条件的 <code>== value</code> 写法，如果<code>value</code>等于<code>None</code>，真正的SQL会转为 <code>IS NULL</code></li>
+</ol>
+
+<p>SQLAlchemy 的 Raw SQL 和 SQL Expression 比较：</p>
+
+<ol>
+<li>SQL Expression 的写法是纯 Python 代码，阅读性更好，尤其是在使用 <code>insert()</code> 方法时，字段名和取值成对出现。</li>
+<li>Raw SQL 比 SQL Expression 更灵活，如果 SQL/DDL 很复杂，Raw SQL 就更有优势了。</li>
+</ol>
+
+<h2 id="常用数据库连接字符串">常用数据库连接字符串</h2>
+
+<pre><code class="language-python">import sqlalchemy
+from sqlalchemy import create_engine
+
+# file database
+# sqlite = create_engine('sqlite:////absolute/path/to/database.db')
+# in-memory database, two ways
+# sqlite = create_engine('sqlite://')
+sqlite = create_engine('sqlite:///:memory:')
+# postgresql
+pgsql = create_engine('postgres://user:passwd@host:port/database')
+# mysql
+mysql = create_engine('mysql://user:passwd@host:port/database')
+# oracle
+oracle = create_engine('oracle://user:passwd@host:port/sidname')
+# oracle via TNS name
+oracle_tns = create_engine('oracle://user:passwd@tnsname')
+# ms sql server using ODBC datasource names.
+PyODBC is the default driver
+# mssql = create_engine('mssql://mydsn')
+mssql = create_engine('mssql://user:passwd@mydsn')
+# firebird
+firebird = create_engine('firebird://user:passwd@host/some.gdm')
+</code></pre>
+
+<h2 id="connection-less-执行和-connection-执行">Connection less 执行和 Connection 执行</h2>
+
+<p>直接使用 <code>engine</code> 执行SQL的方式，叫做 connection less 执行。</p>
+
+<p>先使用 <code>engine.connect()</code> 获取连接对象 <code>conn</code>，然后通过 <code>conn</code> 执行SQL的方式，叫做 connection 执行。</p>
+
+<p>如果要在 transaction 模式下执行，推荐使用 connection 方式；如果不涉及 transaction，两种方法效果是一样的。</p>
+
+<h2 id="使用-text-函数封装sql字符串">使用<code>text()</code>函数封装SQL字符串</h2>
+
+<p>使用 <code>text()</code> 函数有很多好处：</p>
+
+<p>1). 不同数据库，可以使用统一的SQL参数传递写法，参数需以“冒号”引出，在调用 <code>execute()</code> 的时候，使用 dict 结构将实参传进去。</p>
+
+<pre><code class="language-python">from sqlalchemy import text
+
+result = db.execute(
+   text('select * from table where id &lt; :id and typeName = :type'),
+   {'id': 2, 'type': 'USER_TABLE'})
+</code></pre>
+
+<p>2). 如果不指定参数的类型，默认为字符串类型；如果要传递日期参数，需要使用 <code>text()</code> 的 <code>bindparams</code> 参数来声明。</p>
+
+<pre><code class="language-python">from datetime import datetime, timedelta
+from sqlalchemy import DateTime, bindparam
+
+# ten days ago
+date_param = datetime.today() + timedelta(days=-1*10)
+sql = 'delete from caw_job_alarm_log where alarm_time &lt; :alarm_time_param'
+t = text(sql, bindparams=[
+        bindparam('alarm_time_param', type_=DateTime, required=True)])
+db.execute(t, {'alarm_time_param': date_param})
+</code></pre>
+
+<blockquote>
+<p>参数 <code>bindparam</code> 可以使用 <code>type_</code> 来制定参数的类型，也可以使用 initial 值来指定参数的类型。</p>
+</blockquote>
+
+<pre><code>bindparam('alart_time_param', type_=DateTime)  # or
+bindparam('alart_time_param', DateTime())
+</code></pre>
+
+<p>3). 如果要转换查询结果中的数据类型，可以通过 <code>text()</code> 的参数 <code>typemap</code> 参数指定。这点比 mybatis 还灵活：</p>
+
+<pre><code class="language-python">from sqlalchemy import Integer, Unicode
+
+t = text('select id, name from users',
+         typemap={'id': Integer, 'name': Unicode})
+</code></pre>
+
+<p>4). 其他好处，详见 sqlalchemy/sql/expression.py 中的 docstring。</p>
+
+<h2 id="sqlalchemy-访问数据库">SQLAlchemy 访问数据库</h2>
+
+<p><code>create_engine</code> 函数返回一个 <code>Engine</code> 对象。通过 <code>Engine</code> 对象的 <code>execute</code> 方法可以执行数据库操作。</p>
+
+<p><code>execute</code> 方法返回一个 <code>ResultProxy</code> 对象，<code>ResultProxy</code> 类是对 <code>Cursor</code> 类的封装，其中的 <code>cursor</code> 属性对应原来的 <code>cursor</code>，这个类有很多方法对应着 <code>Cursor</code> 类的方法，另外又扩展了一些属性和方法。</p>
+
+<p>对 <code>ResultProxy</code> 对象进行遍历时，得到的每一行都是一个 <code>RowProxy</code> 对象，获取字段的方法非常灵活，索引、字段名，甚至属性都行。</p>
+
+<pre><code>row_proxy[0] == row_proxy['id'] == row_proxy.id
+</code></pre>
+
+<p>看得出来，<code>RowProxy</code> 跟Java的 POJO 类有相似的特性。</p>
+
+<pre><code class="language-python">from sqlalchemy import create_engine
+
+db = create_engine('sqlite:///:memory:', echo=True)
+
+# DDL
+db.execute('create table users(userid char(10), username char(50))')
+
+# DML
+result = db.execute(
+    &quot;insert into users (userid, username) values ('user1', 'tony')&quot;)
+# get rows affected by an UPDATE or DELETE statement,
+# it is not intended to provide the number of rows present from SELECT
+result.rowcount
+# True if this ResultProxy returns rows.
+result.returns_rows
+
+# Query
+result = db.execute(&quot;select * from users&quot;)
+result.scalar()  # 可以返回一个标量查询的值
+result.fetchall()   # 取回所有的行
+result.fetchmany()  # 取回多行
+result.fetchone()   # 取回一行，并判断有且只有一行，若超出一行则报错
+result.first()      # 取回第一行
+result.close()  # result 用完之后，需要关闭
+</code></pre>
+
+<p>SQLAlchemy 支持事务，甚至可以嵌套事务。</p>
+
+<p>缺省情况下事务自动提交，即执行一条SQL就自动提交。</p>
+
+<p>如果要更精准的控制事务，最简单的方法是使用 <code>connection</code>，然后通过 <code>connection</code> 获取 <code>transaction</code> 对象。</p>
+
+<pre><code class="language-python"># transaction
+connection = db.connect()
+trans = connection.begin()
+try:
+    do_something_with(connection)
+    trans.commit()
+except:
+    trans.rollback()
+</code></pre>
+
+<p>还有一种方式是在创建 <code>engine</code> 对象时指定 <code>strategy='threadlocal'</code> 参数，这样会自动创建一个线程局部的连接，对于后续的无连接的执行都会自动使用这个连接，这样在处理事务时，只要使用 <code>engine</code> 对象来操作事务就行了。</p>
+
+<p>例如：</p>
+
+<pre><code class="language-python">db = create_engine(connection, strategy='threadlocal')
+db.begin()
+try:
+    do_something()
+except:
+    db.rollback()
+else:
+    db.commit()
+</code></pre>
+
+<p>如果希望手动提交事务，也可以在 <code>connection</code> 和 <code>statement</code> 上通过 <code>execute_options()</code> 方法修改为手动提交模式。</p>
+
+<pre><code>conn.execute_options(autocommit=False)
+</code></pre>
+
+<p>设置为手动提交模式后，要提交事务，需要调用 <code>conn.commit()</code> 方法。</p>
+
+<h2 id="数据库连接池">数据库连接池</h2>
+
+<p>SQLAlchemy 默认的连接池算法选用规则为：</p>
+
+<ol>
+<li>连接内存中的 SQLite，默认的连接池算法为 <code>SingletonThreadPool</code> 类，即两个线程允许一个连接；</li>
+<li>连接基于文件的 SQLite，默认的i连接池算法为 <code>NullPool</code> 类，即不使用连接池；</li>
+<li>对于其他情况，默认的连接池算法为 <code>QueuePool</code> 类。</li>
+</ol>
+
+<p>我们也可以实现自己的连接池算法：</p>
+
+<pre><code>db = create_engine('sqlite:///file.db', poolclass=YourPoolClass)
+</code></pre>
+
+<p><code>create_engine()</code> 函数和连接池相关的参数有：</p>
+
+<ul>
+<li>pool_recycle: 默认为-1，推荐设置为7200，即如果 <code>connection</code> 空闲了 7200秒 = 2小时，自动重新获取，以防止 <code>connection</code> 被数据库服务器关闭；</li>
+<li>pool_size: 保持连接数，默认为5，正式环境下该数值偏小，需根据实际情况调整；</li>
+<li>max_overflow: 超出 <code>pool_size</code> 后允许的最大连接数，默认为10，这10个连接在使用过后，不放在连接池中，而是被真正关闭的。</li>
+<li>pool_timeout: 获取连接的超时阀值，默认为30秒。</li>
+</ul>
+
+<p>国内的云服务平台 <a href="http://sae.sina.com.cn">SAE</a> 中的共享型 MySQL 服务不支持连接池，如果在其上部署应用，需要禁用连接池，也就是使用 <code>NullPool</code> 类，否则会报 &lsquo;(2006, MySQL server has gone away)&rsquo; 错误。</p>
+
+<h2 id="日志输出">日志输出</h2>
+
+<p>SQLAlchemy 默认输出日志到 <code>sys.stdout</code>。</p>
+
+<p>如果要输出到文件，log 文件不具备 rotate 功能，不推荐在生产环境中使用。</p>
+
+<pre><code>import logging
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+</code></pre>
+
+<p>调用 <code>create_engine()</code> 函数时，可选传递一个参数 <code>echo=True</code> 来打开详细信息输出，这个功能信息量非常大，只适合调试使用，不建议生产环境中使用。</p>
+
+<h2 id="最佳实践与使用心得">最佳实践与使用心得</h2>
+
+<p>使用 ORM 方式构建复杂查询比较困难，使用 Raw SQL 和 SQL Expression 会比较合适一些。</p>
+
+<p><code>declarative</code> 是 SQLAlchemy 的一个新的扩展功能 ，只能用在 ORM 方式中，不适用在 Raw SQL 和 SQL Expression 方式。</p>
+
+<p>如果使用 ORM 方式，表必须有主键，使用 Raw SQL 和 SQL Express 方式没有这个约束。</p>
+
+<p>查询有简单的也有复杂的，使用 Raw SQL 会比较方便。</p>
+
+<p>增、删、改，多是单表操作，使用 SQL Expression 就足够了。具体讲，比如一个 <code>User</code> 类，<strong>可以包含一个固定的 <code>_table</code> 成员</strong>，增删改直接使用 <code>_table</code> 对象来完成。</p>
+
+<pre><code>_table = Table('users', metadata, autoload=True)
+</code></pre>
+
+<p>批量的 insert/update/delete 操作，可以将每行数据组成一个 dict，在将这些 dict 组成一个 list，和 _table.insert()/update()/delete() 一起作为参数传给 `conn.execute()&lsquo;。</p>
+
+<pre><code class="language-python">from sqlalchemy import Table
+
+# _table member object
+_table = Table('users', metadata, autoload=True)
+# insert
+_table.insert().values(f1=value1, f2=value2)
+# update
+_table.update().values(f1=new_value1, f2=new_value2).where(
+    _table.c.f1 == value1).where(_table.c.f2 == value2)
+# delete
+_table.delete().where(_table.c.f1 == value1).where(
+    _table.c.f2 == value2)
+
+# batch opration
+conn.execute(_table.insert(), [
+        {'user_id': 1, 'email_address': 'jack@yahoo.com'},
+        {'user_id': 1, 'email_address': 'jack@msn.com'},
+        {'user_id': 2, 'email_address': 'susan@example.com'},
+        {'user_id': 2, 'email_address': 'susan@example.org'}
+    ])
+</code></pre>
+
+<p>SQL Expression 也可以像 Raw SQL 的 <code>text()</code> 函数一样使用 <code>bindparam</code>，方法是在调用 insert()/update()/delete() 时声明参数，然后在 <code>conn.execute()</code> 执行时候，将参数传递进去。</p>
+
+<pre><code class="language-python">d = _table.delete().where(_table.c.hire_date &lt;= bindparam(
+    'hire_day', DateTime(), required=True))
+conn.execute(d, {'hire_day': datetime.today()})
+</code></pre>
+
+<p><code>where()</code> 和 ORM 中的 <code>filter()</code> 接受一样的参数，各种SQL条件都支持：</p>
+
+<pre><code class="language-python"># equals, not equals
+where(_table.c.name == 'ed')
+where(_table.c.name != 'ed')
+# like
+where(_table.c.name.like('%ed%'))
+# in, not in
+where(_table.c.name.in_(['ed', 'wendy', 'jack']))
+where(~_table.c.name.in_(['ed', 'wendy', 'jack']))
+# is null, is not null
+where(_table.c.name == None)
+where(_table.c.name != None)
+
+# and, or
+from sqlalchemy import and_, or_
+where(and_(_table.c.name == 'ed', _table.c.fullname == 'Ed Jones'))
+where(or_(_table.c.name == 'ed', _table.c.name == 'wendy'))
+# and can also be written with multiple where clause
+where(_table.c.name == 'ed').where(_table.c.fullname == 'Ed Jones')
+
+# match: contents of the match parameter are database backend specific
+where(_table.c.name.match('wendy'))
+</code></pre>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:fn-copyright">出处已不可考，如有侵权请联系我。
+ <a class="footnote-return" href="#fnref:fn-copyright"><sup>[return]</sup></a></li>
+</ol>
+</div>
+
+			</div>
+
+			
+		</div>
+
+  </body>
+</html>
