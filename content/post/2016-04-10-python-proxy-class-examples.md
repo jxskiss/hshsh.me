@@ -95,57 +95,22 @@ class Session(_SessionClassMethods):
 
 Session类的对象可以通过 `sessionmaker(bind=engine)()` 建立，由使用数据库的模块建立、使用，并自行管理。`scoped_session` 类给 Session 对象提供了一层透明代理，既可以像使用 Session 对象一样使用，又可以对 Session 对象进行统一管理。
 
-`scoped_session` 类的实现代码并不复杂，而且相当的精巧：
+`scoped_session` 类的实现代码并不复杂，而且相当的精巧，下面是全部代码（为方便阅读，已删除文档字符串）：
 
 ```
 # file: sqlalchemy/orm/scoping.py
 
 class scoped_session(object):
-    """Provides scoped management of :class:`.Session` objects.
-
-    See :ref:`unitofwork_contextual` for a tutorial.
-    """
-
     session_factory = None
-    """The `session_factory` provided to `__init__` is stored in this
-    attribute and may be accessed at a later time.  This can be useful when
-    a new non-scoped :class:`.Session` or :class:`.Connection` to the
-    database is needed."""
 
     def __init__(self, session_factory, scopefunc=None):
-        """Construct a new :class:`.scoped_session`.
-
-        :param session_factory: a factory to create new :class:`.Session`
-         instances. This is usually, but not necessarily, an instance
-         of :class:`.sessionmaker`.
-        :param scopefunc: optional function which defines
-         the current scope.   If not passed, the :class:`.scoped_session`
-         object assumes "thread-local" scope, and will use
-         a Python ``threading.local()`` in order to maintain the current
-         :class:`.Session`.  If passed, the function should return
-         a hashable token; this token will be used as the key in a
-         dictionary in order to store and retrieve the current
-         :class:`.Session`.
-
-        """
         self.session_factory = session_factory
-
         if scopefunc:
             self.registry = ScopedRegistry(session_factory, scopefunc)
         else:
             self.registry = ThreadLocalRegistry(session_factory)
 
     def __call__(self, **kw):
-        """Return the current :class:`.Session`, creating it
-        using the :attr:`.scoped_session.session_factory` if not present.
-
-        :param \**kw: Keyword arguments will be passed to the
-         :attr:`.scoped_session.session_factory` callable, if an existing
-         :class:`.Session` is not present.  If the :class:`.Session` is present
-         and keyword arguments have been passed,
-         :exc:`~sqlalchemy.exc.InvalidRequestError` is raised.
-
-        """
         if kw:
             scope = kw.pop('scope', False)
             if scope is not None:
@@ -163,30 +128,11 @@ class scoped_session(object):
             return self.registry()
 
     def remove(self):
-        """Dispose of the current :class:`.Session`, if present.
-
-        This will first call :meth:`.Session.close` method
-        on the current :class:`.Session`, which releases any existing
-        transactional/connection resources still being held; transactions
-        specifically are rolled back.  The :class:`.Session` is then
-        discarded.   Upon next usage within the same scope,
-        the :class:`.scoped_session` will produce a new
-        :class:`.Session` object.
-
-        """
-
         if self.registry.has():
             self.registry().close()
         self.registry.clear()
 
     def configure(self, **kwargs):
-        """reconfigure the :class:`.sessionmaker` used by this
-        :class:`.scoped_session`.
-
-        See :meth:`.sessionmaker.configure`.
-
-        """
-
         if self.registry.has():
             warn('At least one scoped session is already present. '
                  ' configure() can not affect sessions that have '
@@ -195,29 +141,6 @@ class scoped_session(object):
         self.session_factory.configure(**kwargs)
 
     def query_property(self, query_cls=None):
-        """return a class property which produces a :class:`.Query` object
-        against the class and the current :class:`.Session` when called.
-
-        e.g.::
-
-            Session = scoped_session(sessionmaker())
-
-            class MyClass(object):
-                query = Session.query_property()
-
-            # after mappers are defined
-            result = MyClass.query.filter(MyClass.name=='foo').all()
-
-        Produces instances of the session's configured query class by
-        default.  To override and use a custom implementation, provide
-        a ``query_cls`` callable.  The callable will be invoked with
-        the class's mapper as a positional argument and a session
-        keyword argument.
-
-        There is no limit to the number of query properties placed on
-        a class.
-
-        """
         class query(object):
             def __get__(s, instance, owner):
                 try:
@@ -233,8 +156,8 @@ class scoped_session(object):
                     return None
         return query()
 
-ScopedSession = scoped_session
 """Old name for backwards compatibility."""
+ScopedSession = scoped_session
 
 
 def instrument(name):
