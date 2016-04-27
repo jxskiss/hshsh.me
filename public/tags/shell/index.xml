@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Linux on hshsh&#39;s little site</title>
-    <link>http://hshsh.me/tags/linux/</link>
-    <description>Recent content in Linux on hshsh&#39;s little site</description>
+    <title>Shell on hshsh&#39;s little site</title>
+    <link>http://hshsh.me/tags/shell/</link>
+    <description>Recent content in Shell on hshsh&#39;s little site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <lastBuildDate>Wed, 27 Apr 2016 12:00:00 +0800</lastBuildDate>
-    <atom:link href="http://hshsh.me/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://hshsh.me/tags/shell/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
       <title>Ubuntu &amp; Linux 常用命令笔记</title>
@@ -85,76 +85,6 @@ $ cat foo &amp;gt; foo.txt 2&amp;gt;&amp;amp;1  # 重定向标准输出和错误
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ sudo sh -c &amp;quot;echo &#39;xxx&#39;&amp;quot; &amp;gt; /path/to/somefile
 $ echo &#39;xxx&#39; | sudo tee -a /path/to/somefile
 &lt;/code&gt;&lt;/pre&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Linux常用打包解包命令备忘</title>
-      <link>http://hshsh.me/post/2016-04-02-linux-pack-and-unpack/</link>
-      <pubDate>Sat, 02 Apr 2016 22:33:15 +0800</pubDate>
-      
-      <guid>http://hshsh.me/post/2016-04-02-linux-pack-and-unpack/</guid>
-      <description>
-
-&lt;h2 id=&#34;tar&#34;&gt;.tar&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar cvf file.tar dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar xvf filename.tar&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;gz&#34;&gt;.gz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;gzip dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;gzip -d filename.gz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-gz&#34;&gt;.tar.gz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar zcvf file.tar.gz dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf file.tar.gz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-bz2&#34;&gt;.tar.bz2&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar jcvf file.tar.bz2 dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar jxvf filename.tar.bz2&lt;/code&gt; or &lt;code&gt;tar jxvf filename.tar.bz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;zip&#34;&gt;.zip&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;zip file.zip dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;unzip filename.zip&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;rar&#34;&gt;.rar&lt;/h2&gt;
-
-&lt;p&gt;安装： &lt;code&gt;sudo apt-get install rar&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;打包： &lt;code&gt;rar e dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;rar a filename.rar&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;z&#34;&gt;.z&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;compress dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;uncompress filename.z&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-z&#34;&gt;.tar.Z&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar Zcvf file.tar.Z dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar Zxvf filename.tar.Z&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tgz&#34;&gt;.tgz&lt;/h2&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf filename.tgz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-tgz&#34;&gt;.tar.tgz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar zcvf file.tar.tgz dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf filename.tar.tgz&lt;/code&gt;&lt;/p&gt;
 </description>
     </item>
     
