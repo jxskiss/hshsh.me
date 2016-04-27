@@ -92,6 +92,22 @@
 <li><a href="http://www.jianshu.com/p/b66754c0baa6">使用Hugo + Github搭建个人博客</a></li>
 </ul>
 
+<h2 id="hugo安装问题">Hugo安装问题</h2>
+
+<p>Hugo官网上有编译好的二进制包发布，如果能直接下载到，最好不过了，放到执行文件路径里就可以了。</p>
+
+<p>很可能的情况是根本下载不下来！！！这时候可以选择使用源码安装，也就是GO GET命令了：</p>
+
+<pre><code class="language-bash">go get -v github.com/spf13/hugo
+</code></pre>
+
+<p>基本上没有代理你是完不成这条命令的，有了代理，还需要设置GIT和WGET等工具使用这个代理，如下：</p>
+
+<pre><code class="language-bash">git config --global http.proxy http://127.0.0.1:7777
+# 如果在Windows上，下面这条命令中的export换成set
+export HTTP_PROXY=http://127.0.0.1:7777
+</code></pre>
+
 			</div>
 
 			
