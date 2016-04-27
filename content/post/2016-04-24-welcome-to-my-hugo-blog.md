@@ -42,3 +42,21 @@ Github Pages上的博客搭好了，但是我却是跟IT越走越远，工作在
 - [使用Hugo搭建免费个人Blog](http://ulricqin.com/post/how-to-use-hugo/)
 - [使用Hugo + Github搭建个人博客](http://www.jianshu.com/p/b66754c0baa6)
 
+## Hugo安装问题
+
+Hugo官网上有编译好的二进制包发布，如果能直接下载到，最好不过了，放到执行文件路径里就可以了。
+
+很可能的情况是根本下载不下来！！！这时候可以选择使用源码安装，也就是GO GET命令了：
+
+```bash
+go get -v github.com/spf13/hugo
+```
+
+基本上没有代理你是完不成这条命令的，有了代理，还需要设置GIT和WGET等工具使用这个代理，如下：
+
+```bash
+git config --global http.proxy http://127.0.0.1:7777
+# 如果在Windows上，下面这条命令中的export换成set
+export HTTP_PROXY=http://127.0.0.1:7777
+```
+
