@@ -3,7 +3,7 @@
 from fabric.api import *
 from fabric.context_managers import *
 from os import listdir
-from os.path import join, abspath, dirname, isfile
+from os.path import join, abspath, dirname, isfile, exists
 from os.path import basename, splitext, getmtime
 from datetime import date
 
@@ -25,6 +25,8 @@ def _push():
 
 def nbconvert():
     nbdir = join(_root, 'data', 'ipynbs')
+    if not exists(nbdir):
+        return
     nbfiles = filter(isfile, (join(nbdir, fn) for fn in listdir(nbdir)))
     count = 0
     with settings(warn_only=True):
