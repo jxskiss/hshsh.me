@@ -3,6 +3,7 @@ Categories = ["Linux"]
 Description = ""
 Tags = ["linux", "ubuntu", "shell"]
 date = "2016-04-27T12:00:00+08:00"
+update = "2016-05-20T10:15:00+08:00"
 menu = "main"
 title = "Ubuntu & Linux 常用命令笔记"
 
@@ -55,6 +56,27 @@ $ ps ax | grep ...
 $ netstat -tap | grep ...
 $ netstat -na | grep ...
 $ ss -tln | grep ...
+```
+
+查看指定进程占用的端口号：
+
+```sh
+$ ps -ef | grep "process name"
+```
+
+根据进程ID查看招用端口号：
+
+```sh
+# redhat
+$ netstat -nltp | grep pid
+# ubuntu
+$ netstat -anp | grep pid
+```
+
+查看占用某个端口的进程：
+
+```sh
+$ lsof -i:port
 ```
 
 ### 监控日志文件
