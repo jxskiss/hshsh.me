@@ -61,6 +61,24 @@ $ netstat -na | grep ...
 $ ss -tln | grep ...
 &lt;/code&gt;&lt;/pre&gt;
 
+&lt;p&gt;查看指定进程占用的端口号：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ ps -ef | grep &amp;quot;process name&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;根据进程ID查看招用端口号：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# redhat
+$ netstat -nltp | grep pid
+# ubuntu
+$ netstat -anp | grep pid
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;查看占用某个端口的进程：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ lsof -i:port
+&lt;/code&gt;&lt;/pre&gt;
+
 &lt;h3 id=&#34;监控日志文件&#34;&gt;监控日志文件&lt;/h3&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ tail -f /path/to/file.log

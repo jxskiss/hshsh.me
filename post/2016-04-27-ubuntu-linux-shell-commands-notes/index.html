@@ -100,6 +100,24 @@ $ netstat -na | grep ...
 $ ss -tln | grep ...
 </code></pre>
 
+<p>查看指定进程占用的端口号：</p>
+
+<pre><code class="language-sh">$ ps -ef | grep &quot;process name&quot;
+</code></pre>
+
+<p>根据进程ID查看招用端口号：</p>
+
+<pre><code class="language-sh"># redhat
+$ netstat -nltp | grep pid
+# ubuntu
+$ netstat -anp | grep pid
+</code></pre>
+
+<p>查看占用某个端口的进程：</p>
+
+<pre><code class="language-sh">$ lsof -i:port
+</code></pre>
+
 <h3 id="监控日志文件">监控日志文件</h3>
 
 <pre><code class="language-sh">$ tail -f /path/to/file.log
