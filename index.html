@@ -57,6 +57,92 @@
       
   <div class="post">
     <h1 class="post-title">
+      <a href="http://hshsh.me/post/2016-07-30-fix-bug-caused-by-un-synced-time/">
+        遭遇时间不同步引起的BUG
+      </a>
+    </h1>
+
+    <span class="post-date">Sat, Jul 30, 2016</span>
+
+    <p>前段时间遇到一个诡异的bug，后端代码有使用到一个数据服务API，接口有时间戳验证。API服务跑在云服务器上，程序后台跑在本地Ubuntu服务器上。</p>
+
+<p>两个服务都是我写的，API服务升级了时间戳验证功能后重新部署，本地服务器上的程序后台服务居然挂掉了，开发电脑上各种测试都正常，只好开启调试日志检查。结果发现是本地服务器上时间比API服务的时间快了两分钟多。</p>
+
+<p>查看服务器配置，发现Ubuntu Server发行版默认居然没有安装NTP服务，Server版居然不开启时间同步服务？？？一万匹草泥马奔腾而过……</p>
+
+<p>找到问题，解决就简单了，安装NTP服务，顺便把时间服务器配置到国内某云的时间服务器~</p>
+
+<p><strong>重点强调</strong>：部署Server服务器后一定要检查NTP服务起了没？一定要起时间同步服务，并且要配置速度比较快的时间同步服务器。</p>
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="http://hshsh.me/post/2016-07-30-using-aliyun-mirror-for-ubuntu-14.04/">
+        Ubuntu 14.04 使用阿里云源
+      </a>
+    </h1>
+
+    <span class="post-date">Sat, Jul 30, 2016</span>
+
+    <p>Ubuntu的官方源也是慢的不行不行的，怎么办？换阿里云的源，速度杠杠的！</p>
+
+<pre><code class="language-sh">sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak  # 备份
+sudo vim /etc/apt/sources.list  # 修改配置
+sudo apt-get clean &amp;&amp; sudo apt-get update  # 更新列表
+</code></pre>
+
+<p>修改源配置如下：</p>
+
+<pre><code class="language-txt">deb http://mirrors.aliyun.com/ubuntu/ trusty main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ trusty-security main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ trusty-updates main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ trusty-proposed main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ trusty-backports main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ trusty main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ trusty-security main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ trusty-updates main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ trusty-proposed main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ trusty-backports main restricted universe multiverse
+
+## Uncomment the following two lines to add software from Canonical's
+## 'partner' repository.
+## This software is not part of Ubuntu, but is offered by Canonical and the
+## respective vendors as a service to Ubuntu users.
+# deb http://archive.canonical.com/ubuntu trusty partner
+# deb-src http://archive.canonical.com/ubuntu trusty partner
+
+## This software is not part of Ubuntu, but is offered by third-party
+## developers who want to ship their latest software.
+deb http://extras.ubuntu.com/ubuntu trusty main
+deb-src http://extras.ubuntu.com/ubuntu trusty main
+deb http://packagecloud.io/grafana/testing/debian/ wheezy main
+</code></pre>
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="http://hshsh.me/post/2016-07-30-using-tsinghua-anaconda-mirror/">
+        使用清华大学Anaconda镜像
+      </a>
+    </h1>
+
+    <span class="post-date">Sat, Jul 30, 2016</span>
+
+    <p>Python的Anaconda发行版用起来真是舒服，可是官方源的速度真可谓是龟速，一直也没找到国内的镜像源。
+早上看到IPython更新到5.0LTS版本，看起来很爽，不死心的又查了一下，发现<a href="https://mirrors.tuna.tsinghua.edu.cn/news/#alpine-anaconda">清华大学2016年4月27日新增了Anaconda的镜像</a>，果断切换。</p>
+
+<p>看这里：<a href="https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/">https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/</a></p>
+
+<pre><code class="language-bash">conda config --add channels 'https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/'
+conda config --set show_channel_urls yes
+</code></pre>
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="http://hshsh.me/post/2016-04-27-ubuntu-linux-shell-commands-notes/">
         Ubuntu &amp; Linux 常用命令笔记
       </a>
