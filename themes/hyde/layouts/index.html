@@ -3,10 +3,10 @@
 
 {{ partial "sidebar.html" . }}
 
-    <div class="content container">
+<div class="content container">
 <div class="posts">
 
-      {{ range .Data.Pages }}
+  {{ range first 3 .Data.Pages }}
   <div class="post">
     <h1 class="post-title">
       <a href="{{ .Permalink }}">
@@ -20,7 +20,10 @@
   </div>
   {{ end }}
 </div>
+<div class="more-posts">
+  <h2><a href="/post/">&gt;&gt;&gt;&gt;</a></h2>
+</div>
 </div>
 
-  </body>
+</body>
 </html>
