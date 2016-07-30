@@ -6,8 +6,25 @@
     <description>Recent content in Python on hshsh&#39;s little site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sun, 24 Apr 2016 22:48:11 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 30 Jul 2016 07:00:00 +0800</lastBuildDate>
     <atom:link href="http://hshsh.me/tags/python/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>使用清华大学Anaconda镜像</title>
+      <link>http://hshsh.me/post/2016-07-30-using-tsinghua-anaconda-mirror/</link>
+      <pubDate>Sat, 30 Jul 2016 07:00:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2016-07-30-using-tsinghua-anaconda-mirror/</guid>
+      <description>&lt;p&gt;Python的Anaconda发行版用起来真是舒服，可是官方源的速度真可谓是龟速，一直也没找到国内的镜像源。
+早上看到IPython更新到5.0LTS版本，看起来很爽，不死心的又查了一下，发现&lt;a href=&#34;https://mirrors.tuna.tsinghua.edu.cn/news/#alpine-anaconda&#34;&gt;清华大学2016年4月27日新增了Anaconda的镜像&lt;/a&gt;，果断切换。&lt;/p&gt;
+
+&lt;p&gt;看这里：&lt;a href=&#34;https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/&#34;&gt;https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/&lt;/a&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;conda config --add channels &#39;https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/&#39;
+conda config --set show_channel_urls yes
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
     
     <item>
       <title>[转载] 专栏：RabbitMQ从入门到精通</title>
