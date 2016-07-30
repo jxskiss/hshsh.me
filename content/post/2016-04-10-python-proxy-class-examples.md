@@ -3,6 +3,7 @@ Categories = ["Python"]
 Description = ""
 Tags = ["python", "design pattern"]
 date = "2016-04-10T23:30:00+08:00"
+update = "2016-05-20T10:30:00+08:00"
 menu = "main"
 title = "Python代理类两例"
 
@@ -40,15 +41,15 @@ from MySQLdb.connections import Connection
 class ProxyConnection(Connection):
     def __init__(self, *args, **kwargs):
         # 保存数据库连接参数以备丢失时候重新连接
-        self.args = args
-        self.kwargs = kwargs
+        self._proxy_args = args
+        self._proxy_kwargs = kwargs
         super(ProxyConnection, self).__init__(*args, **kwargs)
 
     def cursor(self, cursorclass=None):
         try:
             self.ping()
         except MySQLdb.OperationalError:
-            super(ProxyConnection, self).__init__(*self.args, **self.kwargs)
+            super(ProxyConnection, self).__init__(*self._proxy_args, **self._proxy_kwargs)
         return super(ProxyConnection, self).cursor(cursorclass)
 
 conn = ProxyConnection(host='host', port='port',
@@ -65,6 +66,38 @@ def use_mysql():
 这样就解决了MySQL数据库连接丢失的问题。但是这个方法并不是完美的，主要的缺点是每次处理新的请求时，都要 `ping()` 一下，当请求比较多的时候，会增加不必要的开支。不过如果真的请求多的话，也就不会出现这个问题了。作为低请求频次服务的解决方法，这个代理类用起来还是很方便的。
 
 相对于这种粗糙的方法，SQLAlchemy中 `scoped_session` 类对 Session 类的代理实现就精巧的多了，而且它并没有从被代理的 `session` 类继承，而是一个完全独立的类（实际上`scoped_session`是一种 [Registry 设计模式](http://martinfowler.com/eaaCatalog/registry.html)，实现了一些高级功能，不过这里暂时只看它的代理作用）。
+
+
+----
+2016-05-20更新：
+
+除了每次调用cursor方法获取游标时，都ping一下之外，还可以给MySQL的连接代理类增加一个超时机制，只有超时的时候才触发ping动作，这样可以兼顾道效率。
+
+下面是实现代码：
+
+```python
+class MySQLConnection(MySQLdb.connections.Connection):
+    def __init__(self, *args, **kwargs):
+        # set timeout to avoid (2006, 'MySQL server has gone away') problem
+        # mysql close connection after 8 hours without activity by default
+        self._recycle = kwargs.pop('recycle', None) or 7.5 * 3600
+        self._last_time = time.time()
+        # store connection parameters to reconnect
+        self._proxy_args = args
+        self._proxy_kwargs = kwargs
+        super(MySQL, self).__init__(*args, **kwargs)
+
+    def cursor(self, cursorclass=None):
+        if time.time() - self._last_time > self._recycle:
+            try:
+                self.ping()
+            except MySQLdb.OperationalError:
+                super(MySQLConnection, self).__init__(*self._proxy_args, **self._proxy_kwargs)
+        self._last_time = time.time()
+        return super(MySQL, self).cursor(cursorclass)
+```
+
+----
 
 
 ## SQLAlchemy 代理类 `scoped_session`
