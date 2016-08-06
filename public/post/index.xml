@@ -6,8 +6,37 @@
     <description>Recent content in Posts on hshsh&#39;s little site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sat, 30 Jul 2016 07:30:00 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 06 Aug 2016 10:17:25 +0800</lastBuildDate>
     <atom:link href="http://hshsh.me/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>升级Windows导致Postgresql服务无法启动问题</title>
+      <link>http://hshsh.me/post/2016-08-06-fix-postgresql-permission-issue-again/</link>
+      <pubDate>Sat, 06 Aug 2016 10:17:25 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2016-08-06-fix-postgresql-permission-issue-again/</guid>
+      <description>&lt;p&gt;这两天升级系统到了Windows 10.1，结果Postgresql数据库又起不来了，之前重做Windows 7的时候就遇到过这个问题，但是不记得是怎么搞定的了。&lt;/p&gt;
+
+&lt;p&gt;查了一堆资料，基本断定问题是由于升级操作系统后，Windows建立新用户，用户SID改变导致的。可是网上始终也没有找到个有效的解决方法。记得上次就是这样，最后只能再次祭出大招，下载EnterpriseDB的安装包，重装一遍，查看它的服务进程登录用户和文件目录权限。&lt;/p&gt;
+
+&lt;p&gt;这里记录一下，以免下次又忘了：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;服务进程登录用户：&amp;rdquo;NT AUTHORITY\NetworkService&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;服务进程启动命令：C:/path/to/pg_ctl.exe runservice -N &amp;ldquo;pgsql&amp;rdquo; -D &amp;ldquo;E:/path/to/data&amp;rdquo; -w&lt;/li&gt;
+&lt;li&gt;数据目录OWNER：Administrators (COMPUTER\Administrators)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;另外数据目录上要确保下面两个权限：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;NETWORK SERVICE：完全控制&lt;/li&gt;
+&lt;li&gt;本地登录用户（COMPUTER\username）：完全控制&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;其他的权限系统默认就行了，具体权限设置就不记录了，从Cygwin开始就对着权限搞来搞去，现在Postgresql又搞权限问题，已经是轻车熟路了。&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>遭遇时间不同步引起的BUG</title>
@@ -3140,76 +3169,6 @@ where(_table.c.name.match(&#39;wendy&#39;))
  &lt;a class=&#34;footnote-return&#34; href=&#34;#fnref:fn-copyright&#34;&gt;&lt;sup&gt;[return]&lt;/sup&gt;&lt;/a&gt;&lt;/li&gt;
 &lt;/ol&gt;
 &lt;/div&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Linux常用打包解包命令备忘</title>
-      <link>http://hshsh.me/post/2016-04-02-linux-pack-and-unpack/</link>
-      <pubDate>Sat, 02 Apr 2016 22:33:15 +0800</pubDate>
-      
-      <guid>http://hshsh.me/post/2016-04-02-linux-pack-and-unpack/</guid>
-      <description>
-
-&lt;h2 id=&#34;tar&#34;&gt;.tar&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar cvf file.tar dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar xvf filename.tar&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;gz&#34;&gt;.gz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;gzip dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;gzip -d filename.gz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-gz&#34;&gt;.tar.gz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar zcvf file.tar.gz dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf file.tar.gz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-bz2&#34;&gt;.tar.bz2&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar jcvf file.tar.bz2 dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar jxvf filename.tar.bz2&lt;/code&gt; or &lt;code&gt;tar jxvf filename.tar.bz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;zip&#34;&gt;.zip&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;zip file.zip dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;unzip filename.zip&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;rar&#34;&gt;.rar&lt;/h2&gt;
-
-&lt;p&gt;安装： &lt;code&gt;sudo apt-get install rar&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;打包： &lt;code&gt;rar e dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;rar a filename.rar&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;z&#34;&gt;.z&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;compress dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;uncompress filename.z&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-z&#34;&gt;.tar.Z&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar Zcvf file.tar.Z dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar Zxvf filename.tar.Z&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tgz&#34;&gt;.tgz&lt;/h2&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf filename.tgz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-tgz&#34;&gt;.tar.tgz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar zcvf file.tar.tgz dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf filename.tar.tgz&lt;/code&gt;&lt;/p&gt;
 </description>
     </item>
     

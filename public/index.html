@@ -58,6 +58,38 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="http://hshsh.me/post/2016-08-06-fix-postgresql-permission-issue-again/">
+        升级Windows导致Postgresql服务无法启动问题
+      </a>
+    </h1>
+
+    <span class="post-date">Sat, Aug 6, 2016</span>
+
+    <p>这两天升级系统到了Windows 10.1，结果Postgresql数据库又起不来了，之前重做Windows 7的时候就遇到过这个问题，但是不记得是怎么搞定的了。</p>
+
+<p>查了一堆资料，基本断定问题是由于升级操作系统后，Windows建立新用户，用户SID改变导致的。可是网上始终也没有找到个有效的解决方法。记得上次就是这样，最后只能再次祭出大招，下载EnterpriseDB的安装包，重装一遍，查看它的服务进程登录用户和文件目录权限。</p>
+
+<p>这里记录一下，以免下次又忘了：</p>
+
+<ul>
+<li>服务进程登录用户：&rdquo;NT AUTHORITY\NetworkService&rdquo;</li>
+<li>服务进程启动命令：C:/path/to/pg_ctl.exe runservice -N &ldquo;pgsql&rdquo; -D &ldquo;E:/path/to/data&rdquo; -w</li>
+<li>数据目录OWNER：Administrators (COMPUTER\Administrators)</li>
+</ul>
+
+<p>另外数据目录上要确保下面两个权限：</p>
+
+<ul>
+<li>NETWORK SERVICE：完全控制</li>
+<li>本地登录用户（COMPUTER\username）：完全控制</li>
+</ul>
+
+<p>其他的权限系统默认就行了，具体权限设置就不记录了，从Cygwin开始就对着权限搞来搞去，现在Postgresql又搞权限问题，已经是轻车熟路了。</p>
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="http://hshsh.me/post/2016-07-30-fix-bug-caused-by-un-synced-time/">
         遭遇时间不同步引起的BUG
       </a>
@@ -118,26 +150,6 @@ deb-src http://mirrors.aliyun.com/ubuntu/ trusty-backports main restricted unive
 deb http://extras.ubuntu.com/ubuntu trusty main
 deb-src http://extras.ubuntu.com/ubuntu trusty main
 deb http://packagecloud.io/grafana/testing/debian/ wheezy main
-</code></pre>
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2016-07-30-using-tsinghua-anaconda-mirror/">
-        使用清华大学Anaconda镜像
-      </a>
-    </h1>
-
-    <span class="post-date">Sat, Jul 30, 2016</span>
-
-    <p>Python的Anaconda发行版用起来真是舒服，可是官方源的速度真可谓是龟速，一直也没找到国内的镜像源。
-早上看到IPython更新到5.0LTS版本，看起来很爽，不死心的又查了一下，发现<a href="https://mirrors.tuna.tsinghua.edu.cn/news/#alpine-anaconda">清华大学2016年4月27日新增了Anaconda的镜像</a>，果断切换。</p>
-
-<p>看这里：<a href="https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/">https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/</a></p>
-
-<pre><code class="language-bash">conda config --add channels 'https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/'
-conda config --set show_channel_urls yes
 </code></pre>
 
   </div>
