@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+	<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn" lang="zh-cn">
 <head>
   <link href="http://gmpg.org/xfn/11" rel="profile">
@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
-  <title> hshsh&#39;s little site &middot; hshsh&#39;s little site </title>
+  <title> Ubuntu14.04上DNS引发的血案 &middot; hshsh&#39;s little site </title>
 
   
   <link rel="stylesheet" href="http://hshsh.me/css/poole.css">
@@ -27,12 +27,11 @@
   <link rel="shortcut icon" href="/favicon.png">
 
   
-  <link href="http://hshsh.me/index.xml" rel="alternate" type="application/rss+xml" title="hshsh&#39;s little site" />
+  <link href="" rel="alternate" type="application/rss+xml" title="hshsh&#39;s little site" />
 </head>
 
-<body class=" ">
-
-<div class="sidebar">
+	<body class="">
+		<div class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
       <a href="http://hshsh.me/"><h1>hshsh&#39;s little site</h1></a>
@@ -52,20 +51,11 @@
 </div>
 
 
-<div class="content container">
-<div class="posts">
-
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2016-08-09-ubuntu-14.04-dnsmasq/">
-        Ubuntu14.04上DNS引发的血案
-      </a>
-    </h1>
-
-    <span class="post-date">Tue, Aug 9, 2016</span>
-
-    <p>作为技术备忘，为了纪念为此死去的千千万万脑细胞，先说问题：</p>
+		<div class="content container">
+			<div class="post">
+			 	<h1>Ubuntu14.04上DNS引发的血案</h1>
+			  <span class="post-date">Tue, Aug 9, 2016</span>
+			      <p>作为技术备忘，为了纪念为此死去的千千万万脑细胞，先说问题：</p>
 
 <p>公司搬家后，一台工作站上的爬虫程序突然莫名其妙的变慢，从一天20多万条数据萎缩到了14W-20W条不稳定，因为新办公室里所有部门共用一条网线，起初还以为是网络拥挤，属于正常情况，后来居然夸张的变成了每天3W条数据，经过跟踪发现这个爬虫全天候不分时间段的慢，这就很不对了。然后开始一系列的排查。</p>
 
@@ -143,66 +133,10 @@ nameserver 223.6.6.6
 <li><a href="https://gist.github.com/magnetikonline/6236150">Using Dnsmasq with Ubuntu for VM web application testing</a></li>
 </ol>
 
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2016-08-06-fix-postgresql-permission-issue-again/">
-        升级Windows导致Postgresql服务无法启动问题
-      </a>
-    </h1>
+			</div>
 
-    <span class="post-date">Sat, Aug 6, 2016</span>
+			
+		</div>
 
-    <p>这两天升级系统到了Windows 10.1，结果Postgresql数据库又起不来了，之前重做Windows 7的时候就遇到过这个问题，但是不记得是怎么搞定的了。</p>
-
-<p>查了一堆资料，基本断定问题是由于升级操作系统后，Windows建立新用户，用户SID改变导致的。可是网上始终也没有找到个有效的解决方法。记得上次就是这样，最后只能再次祭出大招，下载EnterpriseDB的安装包，重装一遍，查看它的服务进程登录用户和文件目录权限。</p>
-
-<p>这里记录一下，以免下次又忘了：</p>
-
-<ul>
-<li>服务进程登录用户：&rdquo;NT AUTHORITY\NetworkService&rdquo;</li>
-<li>服务进程启动命令：C:/path/to/pg_ctl.exe runservice -N &ldquo;pgsql&rdquo; -D &ldquo;E:/path/to/data&rdquo; -w</li>
-<li>数据目录OWNER：Administrators (COMPUTER\Administrators)</li>
-</ul>
-
-<p>另外数据目录上要确保下面两个权限：</p>
-
-<ul>
-<li>NETWORK SERVICE：完全控制</li>
-<li>本地登录用户（COMPUTER\username）：完全控制</li>
-</ul>
-
-<p>其他的权限系统默认就行了，具体权限设置就不记录了，从Cygwin开始就对着权限搞来搞去，现在Postgresql又搞权限问题，已经是轻车熟路了。</p>
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2016-07-30-fix-bug-caused-by-un-synced-time/">
-        遭遇时间不同步引起的BUG
-      </a>
-    </h1>
-
-    <span class="post-date">Sat, Jul 30, 2016</span>
-
-    <p>前段时间遇到一个诡异的bug，后端代码有使用到一个数据服务API，接口有时间戳验证。API服务跑在云服务器上，程序后台跑在本地Ubuntu服务器上。</p>
-
-<p>两个服务都是我写的，API服务升级了时间戳验证功能后重新部署，本地服务器上的程序后台服务居然挂掉了，开发电脑上各种测试都正常，只好开启调试日志检查。结果发现是本地服务器上时间比API服务的时间快了两分钟多。</p>
-
-<p>查看服务器配置，发现Ubuntu Server发行版默认居然没有安装NTP服务，Server版居然不开启时间同步服务？？？一万匹草泥马奔腾而过……</p>
-
-<p>找到问题，解决就简单了，安装NTP服务，顺便把时间服务器配置到国内某云的时间服务器~</p>
-
-<p><strong>重点强调</strong>：部署Server服务器后一定要检查NTP服务起了没？一定要起时间同步服务，并且要配置速度比较快的时间同步服务器。</p>
-
-  </div>
-  
-</div>
-<div class="more-posts">
-  <h2><a href="/post/">&gt;&gt;&gt;&gt;</a></h2>
-</div>
-</div>
-
-</body>
+  </body>
 </html>
