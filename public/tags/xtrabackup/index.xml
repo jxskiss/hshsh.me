@@ -27,6 +27,17 @@
 &lt;li&gt;&lt;a href=&#34;https://segmentfault.com/a/1190000002575399&#34;&gt;通过XtraBackup实现不停机不锁表搭建主从同步&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
+&lt;p&gt;&lt;strong&gt;更新历史&lt;/strong&gt;:&lt;/p&gt;
+
+&lt;p&gt;2016-04-26: 初稿.&lt;/p&gt;
+
+&lt;p&gt;2016-12-19:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;修复 innobackupex 命令错误: &amp;ldquo;xtrabackup: Error: &amp;ndash;defaults-file must be specified first on the command line&amp;rdquo;.&lt;/li&gt;
+&lt;li&gt;添加 &amp;ldquo;主从复制心跳和连接超时&amp;rdquo; 内容.&lt;/li&gt;
+&lt;/ol&gt;
+
 &lt;h2 id=&#34;简介&#34;&gt;简介&lt;/h2&gt;
 
 &lt;p&gt;转载一下主从同步和XtraBackup的简介：&lt;/p&gt;
@@ -155,7 +166,7 @@ mysql -u USER -p PASSWD -e &amp;quot;show global variables like &#39;log_bin&#39
 
 &lt;p&gt;五、主服务器上执行备份操作&lt;/p&gt;
 
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo innobackupex --user=USER --password --defaults-file=/etc/mysql/my.cnf \
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo innobackupex --defaults-file=/etc/mysql/my.cnf --user=USER --password \
   --parallel=4 /tmp/mybackup
 &lt;/code&gt;&lt;/pre&gt;
 
@@ -186,7 +197,7 @@ sudo scp -r /tmp/mybackup/2016-04-26_17-44-49 USER@SLAVE:/tmp/mybackup/2016-04-2
 &lt;p&gt;七、从服务器上恢复备份数据&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;# 恢复数据
-sudo innobackupex --user=USER --password --defaults-file=/etc/mysql/my.cnf \
+sudo innobackupex --defaults-file=/etc/mysql/my.cnf --user=USER --password \
   --copy-back /tmp/mybackup/2016-04-26/
 # 需要恢复权限给mysql
 sudo chown -R mysql:mysql /var/lib/mysql
@@ -201,9 +212,9 @@ sudo service mysql start
 &lt;pre&gt;&lt;code class=&#34;language-sql&#34;&gt;mysql -u USER -p PASSWD -h HOST -P PORT
 &amp;gt; grant replication slave on *.* to &#39;slave&#39;@&#39;10.10.16.24&#39; identified by &#39;slave_passport&#39;;
 &amp;gt; flush privileges;
-&amp;gt; 
+&amp;gt;
 &amp;gt; select distinct concat(&#39;User: &#39;&#39;&#39;,user,&#39;&#39;&#39;@&#39;&#39;&#39;,host,&#39;&#39;&#39;;&#39;) as query from mysql.user;
-&amp;gt; 
+&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;最后一条语句查询当前数据库中的用户信息，检查&lt;code&gt;slave_passport&lt;/code&gt;是否在其中。&lt;/p&gt;
@@ -218,7 +229,7 @@ sudo service mysql start
 &amp;gt; master_port = 3306,
 &amp;gt; master_log_file = &#39;mysql-bin.000003&#39;,
 &amp;gt; master_log_pos = 1946;
-&amp;gt; 
+&amp;gt;
 &amp;gt; start slave;
 &lt;/code&gt;&lt;/pre&gt;
 
@@ -297,6 +308,35 @@ show master status \G
 SHOW PROCESSLIST;
 start slave;
 show slave status \G
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;2016-12-19更新-主从复制心跳和连接超时&#34;&gt;2016-12-19更新: 主从复制心跳和连接超时&lt;/h2&gt;
+
+&lt;p&gt;实际运行过程中, 由于没有专门的人做运维, 从服务器也只是起备份作用, 偶尔发现从服务器已经没有跟主服务器同步, 数据滞后了很长时间了, 估计是跟公司网络环境不大稳定有关系.&lt;/p&gt;
+
+&lt;p&gt;在网上了解到MySQL 5.5以上版本的主从复制还有一个心跳功能, 参考这里: &lt;a href=&#34;http://blog.csdn.net/JesseYoung/article/details/42914577&#34;&gt;MySQL运维-主从复制心跳&lt;/a&gt;. 果断打开心跳功能.&lt;/p&gt;
+
+&lt;p&gt;连接从服务器, 执行下面指令配置心跳周期和连接超时:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; stop slave;
+mysql&amp;gt; change master to master_heartbeat_period = 10;
+mysql&amp;gt; set global slave_net_timeout = 25;
+mysql&amp;gt; start slave;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;可以通过以下命令检查心跳状态:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;mysql -uUSER -pPASSWORD -hHOST -PPORT -e &amp;quot;show status like &#39;slave%&#39;;&amp;quot;
+    +----------------------------+--------+
+    | Variable_name              | Value  |
+    +----------------------------+--------+
+    | Slave_heartbeat_period     | 10.000 |
+    | Slave_last_heartbeat       |        |
+    | Slave_open_temp_tables     | 0      |
+    | Slave_received_heartbeats  | 0      |
+    | Slave_retried_transactions | 0      |
+    | Slave_running              | ON     |
+    +----------------------------+--------+
 &lt;/code&gt;&lt;/pre&gt;
 </description>
     </item>
