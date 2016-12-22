@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Software on hshsh&#39;s little site</title>
+    <link>http://hshsh.me/tags/software/</link>
+    <description>Recent content in Software on hshsh&#39;s little site</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Thu, 22 Dec 2016 23:30:00 +0800</lastBuildDate>
+    <atom:link href="http://hshsh.me/tags/software/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>解决Photoshop CC 2017无法安装扩展插件的问题</title>
+      <link>http://hshsh.me/post/2016-12-22-photoshop-cc-2017-extensions-fix/</link>
+      <pubDate>Thu, 22 Dec 2016 23:30:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2016-12-22-photoshop-cc-2017-extensions-fix/</guid>
+      <description>&lt;p&gt;安装Photoshop CC 2017后，打开PNG文件，弹出“无法加载扩展，因为它未正确签署”的错误提示，解决方法如下：&lt;/p&gt;
+
+&lt;p&gt;打开注册表编辑器，定位到路径“HKEY_CURRENT_USER/Software/Adobe/CSXS.7”，新建“字符串值”，名称为“PlayerDebugMode”，值为1。&lt;/p&gt;
+
+&lt;p&gt;关闭注册表，收工。重新打开Photoshop，可以正常安装加载扩展了。&lt;/p&gt;
+
+&lt;p&gt;或者可以保存以下内容为“ps2017_extensions_fix.reg”文件，并双击导入注册表：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-reg&#34;&gt;Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\SOFTWARE\Adobe\CSXS.7]
+&amp;quot;PlayerDebugMode&amp;quot;=&amp;quot;1&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;下面参考资料文章中有动图指导，推荐拜读原文。&lt;/p&gt;
+
+&lt;p&gt;参考资料：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.zcool.com.cn/article/ZNDUwODY0.html&#34;&gt;一招解决PSCC2017无法安装扩展插件(原创文章)&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
