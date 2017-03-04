@@ -2,11 +2,10 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Database on hshsh&#39;s little site</title>
-    <link>http://hshsh.me/tags/database/</link>
+    <link>http://hshsh.me/tags/database/index.xml</link>
     <description>Recent content in Database on hshsh&#39;s little site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sat, 06 Aug 2016 10:17:25 +0800</lastBuildDate>
     <atom:link href="http://hshsh.me/tags/database/index.xml" rel="self" type="application/rss+xml" />
     
     <item>

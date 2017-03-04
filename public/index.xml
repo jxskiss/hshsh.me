@@ -2,12 +2,64 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>hshsh&#39;s little site</title>
-    <link>http://hshsh.me/</link>
+    <link>http://hshsh.me/index.xml</link>
     <description>Recent content on hshsh&#39;s little site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Thu, 22 Dec 2016 23:30:00 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 04 Mar 2017 14:50:00 +0800</lastBuildDate>
     <atom:link href="http://hshsh.me/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>MacBook Pro上完美使用IKBC C87机械键盘</title>
+      <link>http://hshsh.me/post/2017-03-04-ikbc-keyboard-on-mac/</link>
+      <pubDate>Sat, 04 Mar 2017 14:50:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2017-03-04-ikbc-keyboard-on-mac/</guid>
+      <description>&lt;p&gt;最近也用上了MacBook Pro，除了吐槽一下这个Multi Touch Bar键盘敲起来没有一点手感，还有数字&amp;rdquo;1&amp;rdquo;左边那个丧心病狂的的&amp;rdquo;Section（§）&amp;rdquo;之外，其他方面用起来真心舒服。&lt;/p&gt;
+
+&lt;p&gt;适应了几天Mac的键位后，琢磨着把自己的IKBC C87机械键盘接上来用，主要参考了下面的文章：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://plus.zealer.com/post/56805.html&#34;&gt;让机械键盘完美适配你的Mac！&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://damieng.com/blog/2015/04/24/make-home-end-keys-behave-like-windows-on-mac-os-x&#34;&gt;Make Home &amp;amp; End keys behave like Windows on Mac OS X&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://osxnotes.net/keybindings.html&#34;&gt;DefaultKeyBinding.dict&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;作为一枚死宅的程序猿，我的需求很简单：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;把数字&amp;rdquo;1&amp;rdquo;左边的Section键换回反引号键&amp;rdquo;`~&amp;ldquo;，把半残的左边Shift键右边的反引号键还原成Shift；&lt;/li&gt;
+&lt;li&gt;把IKBC C87上的Control、Win、Alt键映射成Mac的Control、Option、Command键位顺序；&lt;/li&gt;
+&lt;li&gt;把IKBC C87上的Home、End、PageUp、PageDown键功能都可以正常跳转&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;嗯，就这样，通过一番研（sou）究（suo）之后，发现可以通过如下组合实现上面的功能：&lt;/p&gt;
+
+&lt;p&gt;Karabiner Elements修改建伟映射、DefaultKeyBinding.dict修改组合键功能、Alfred控制快速切换Karabiner Elements的Profile。&lt;/p&gt;
+
+&lt;p&gt;具体过程略过，简要记录一下主要配置。&lt;/p&gt;
+
+&lt;p&gt;Karabiner Elements建立三个Profiles：&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;&amp;ldquo;none&amp;rdquo;：原始键盘，不映射任何键位，这个主要是用作偶尔别人使用电脑不习惯改键或键位修改出现问题时，可以快速恢复；&lt;/li&gt;
+&lt;li&gt;&amp;ldquo;internal&amp;rdquo;：这个用于映射内置键盘的&amp;rdquo;§±&amp;rdquo;和&amp;rdquo;`~&amp;ldquo;键；&lt;/li&gt;
+&lt;li&gt;&amp;ldquo;ikbc&amp;rdquo;: 用于映射机械键盘上的Control、Win、Alt键的顺序；&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;这三个映射使用&lt;a href=&#34;http://www.packal.org/workflow/karabiner-elements-profile-switcher&#34;&gt;Karabiner Elements Profile Switcher&lt;/a&gt;这个Workflow可以快速切换。因为Karabiner Elements现在还不可以根据键盘关联自动调用对应的Profile。&lt;/p&gt;
+
+&lt;p&gt;我给每个Profile都制定了一个快捷键（Alfred Trigger Hotkey）：&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Ctrl + Option + Command + K：切换到 &amp;ldquo;none&amp;rdquo; Profile；&lt;/li&gt;
+&lt;li&gt;在内置键盘上使用 F12 切换到 &amp;ldquo;internal&amp;rdquo; Profile；&lt;/li&gt;
+&lt;li&gt;机械键盘上的 PrtSrc 键被 Karabiner Elements 识别出来是F13，所以就用了这个 &amp;ldquo;F13&amp;rdquo; 切换到 &amp;ldquo;ikbc&amp;rdquo; Profile。&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;如此，又可以用我的键盘愉快的啪啪啪了，貌似我敲键盘的声音会比较大一些，对我就是故意的😄😄😄😄😄&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>解决Photoshop CC 2017无法安装扩展插件的问题</title>
@@ -2018,239 +2070,6 @@ unbound pandas.core.frame.DataFrame method:
 &lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;路漫漫其修远兮～～我将慢慢去求索～～&lt;/p&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Python代理类两例</title>
-      <link>http://hshsh.me/post/2016-04-10-python-proxy-class-examples/</link>
-      <pubDate>Sun, 10 Apr 2016 23:30:00 +0800</pubDate>
-      
-      <guid>http://hshsh.me/post/2016-04-10-python-proxy-class-examples/</guid>
-      <description>
-
-&lt;p&gt;最近遇到MySQL的连接断开，MySQLdb报&amp;rsquo;(2006, MySQL server has gone away.)&amp;lsquo;错误的问题。&lt;/p&gt;
-
-&lt;p&gt;问题发生的环境是，客户端使用了长连接，程序启动的时候使用MySQLdb模块的connect方法建立一个数据库连接，程序运行期间一直使用这个连接。对于请求比较多的服务程序来说，这个方法不会出现问题，因为MySQL默认连接超时的时间设定是8小时，所以连接不会超时断开，也就不会报这个错误了。但是作为一个调试服务，请求频率可能低于8小时，就导致错误了。&lt;/p&gt;
-
-&lt;p&gt;由于不想修改很多具体实现的代码，所以使用&lt;strong&gt;代理类&lt;/strong&gt;的方法对这个程序打了个补丁解决问题。&lt;/p&gt;
-
-&lt;p&gt;另外 SQLAlchemy 中的 &lt;code&gt;scoped_session&lt;/code&gt; 也是一个代理类，实现也很有意思，这里一起分享一下这两个代理类。&lt;/p&gt;
-
-&lt;h2 id=&#34;mysqldb-connection-代理类&#34;&gt;MySQLdb Connection 代理类&lt;/h2&gt;
-
-&lt;p&gt;先看看出问题的代码：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;import MySQLdb
-conn = MySQLdb.connect(host=&#39;host&#39;, port=&#39;port&#39;,
-                       user=&#39;user&#39;, passwd=&#39;passwd&#39;, db=&#39;db&#39;)
-
-def use_mysql():
-    cursor = conn.cursor()
-    cursor.execute(&#39;do something with mysql database;&#39;)
-    cursor.close()
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;code&gt;MySQLdb.connect&lt;/code&gt;函数返回的是一个&lt;code&gt;Connection&lt;/code&gt;对象，当操作频率大于8个小时的时候，MySQL服务器就会关闭连接，然后下一次执行 &lt;code&gt;cursor = conn.cursor()&lt;/code&gt; 的时候，就会报连接丢失的错误。为了既使用长连接，又能避免这个错误，我们可以封装一个&lt;code&gt;Connection&lt;/code&gt;类的代理类，重载 &lt;code&gt;cursor&lt;/code&gt; 方法，当有新的请求的时候，先检查连接是否还在，如果连接丢失的话，就重新连接数据库，然后再调用 &lt;code&gt;Connection&lt;/code&gt; 类的 &lt;code&gt;cursor&lt;/code&gt; 方法并返回结果：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;import MySQLdb
-from MySQLdb.connections import Connection
-
-class ProxyConnection(Connection):
-    def __init__(self, *args, **kwargs):
-        # 保存数据库连接参数以备丢失时候重新连接
-        self._proxy_args = args
-        self._proxy_kwargs = kwargs
-        super(ProxyConnection, self).__init__(*args, **kwargs)
-
-    def cursor(self, cursorclass=None):
-        try:
-            self.ping()
-        except MySQLdb.OperationalError:
-            super(ProxyConnection, self).__init__(*self._proxy_args, **self._proxy_kwargs)
-        return super(ProxyConnection, self).cursor(cursorclass)
-
-conn = ProxyConnection(host=&#39;host&#39;, port=&#39;port&#39;,
-                       user=&#39;user&#39;, passwd=&#39;passwd&#39;, db=&#39;db&#39;)
-
-def use_mysql():
-    cursor = conn.cursor()
-    cursor.execute(&#39;do something with mysql database;&#39;)
-    cursor.close()
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;这个代理类，只重载 &lt;code&gt;cursor()&lt;/code&gt; 这一个方法，其他方法直接继承自父类 &lt;code&gt;Connection&lt;/code&gt;。&lt;/p&gt;
-
-&lt;p&gt;这样就解决了MySQL数据库连接丢失的问题。但是这个方法并不是完美的，主要的缺点是每次处理新的请求时，都要 &lt;code&gt;ping()&lt;/code&gt; 一下，当请求比较多的时候，会增加不必要的开支。不过如果真的请求多的话，也就不会出现这个问题了。作为低请求频次服务的解决方法，这个代理类用起来还是很方便的。&lt;/p&gt;
-
-&lt;p&gt;相对于这种粗糙的方法，SQLAlchemy中 &lt;code&gt;scoped_session&lt;/code&gt; 类对 Session 类的代理实现就精巧的多了，而且它并没有从被代理的 &lt;code&gt;session&lt;/code&gt; 类继承，而是一个完全独立的类（实际上&lt;code&gt;scoped_session&lt;/code&gt;是一种 &lt;a href=&#34;http://martinfowler.com/eaaCatalog/registry.html&#34;&gt;Registry 设计模式&lt;/a&gt;，实现了一些高级功能，不过这里暂时只看它的代理作用）。&lt;/p&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;2016-05-20更新：&lt;/p&gt;
-
-&lt;p&gt;除了每次调用cursor方法获取游标时，都ping一下之外，还可以给MySQL的连接代理类增加一个超时机制，只有超时的时候才触发ping动作，这样可以兼顾道效率。&lt;/p&gt;
-
-&lt;p&gt;下面是实现代码：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;class MySQLConnection(MySQLdb.connections.Connection):
-    def __init__(self, *args, **kwargs):
-        # set timeout to avoid (2006, &#39;MySQL server has gone away&#39;) problem
-        # mysql close connection after 8 hours without activity by default
-        self._recycle = kwargs.pop(&#39;recycle&#39;, None) or 7.5 * 3600
-        self._last_time = time.time()
-        # store connection parameters to reconnect
-        self._proxy_args = args
-        self._proxy_kwargs = kwargs
-        super(MySQL, self).__init__(*args, **kwargs)
-
-    def cursor(self, cursorclass=None):
-        if time.time() - self._last_time &amp;gt; self._recycle:
-            try:
-                self.ping()
-            except MySQLdb.OperationalError:
-                super(MySQLConnection, self).__init__(*self._proxy_args, **self._proxy_kwargs)
-        self._last_time = time.time()
-        return super(MySQL, self).cursor(cursorclass)
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;hr /&gt;
-
-&lt;h2 id=&#34;sqlalchemy-代理类-scoped-session&#34;&gt;SQLAlchemy 代理类 &lt;code&gt;scoped_session&lt;/code&gt;&lt;/h2&gt;
-
-&lt;p&gt;SQLAlchemy 的 Session 类是 SQLAlchemy ORM 模型对数据库操作的主要接口，定义了&lt;code&gt;query&lt;/code&gt;, &lt;code&gt;execute&lt;/code&gt;, &lt;code&gt;flush&lt;/code&gt;, &lt;code&gt;commit&lt;/code&gt;, &lt;code&gt;rollback&lt;/code&gt;, &lt;code&gt;refresh&lt;/code&gt;, &lt;code&gt;close&lt;/code&gt;, &lt;code&gt;remove&lt;/code&gt;等方法。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-pyhton&#34;&gt;# file: sqlalchemy/orm/session.py
-
-class Session(_SessionClassMethods):
-    &amp;quot;&amp;quot;&amp;quot;Manages persistence operations for ORM-mapped objects.
-
-    The Session&#39;s usage paradigm is described at :doc:`/orm/session`.
-    &amp;quot;&amp;quot;&amp;quot;
-
-    public_methods = (
-        &#39;__contains__&#39;, &#39;__iter__&#39;, &#39;add&#39;, &#39;add_all&#39;, &#39;begin&#39;, &#39;begin_nested&#39;,
-        &#39;close&#39;, &#39;commit&#39;, &#39;connection&#39;, &#39;delete&#39;, &#39;execute&#39;, &#39;expire&#39;,
-        &#39;expire_all&#39;, &#39;expunge&#39;, &#39;expunge_all&#39;, &#39;flush&#39;, &#39;get_bind&#39;,
-        &#39;is_modified&#39;, &#39;bulk_save_objects&#39;, &#39;bulk_insert_mappings&#39;,
-        &#39;bulk_update_mappings&#39;,
-        &#39;merge&#39;, &#39;query&#39;, &#39;refresh&#39;, &#39;rollback&#39;,
-        &#39;scalar&#39;)
-
-    # def __init__(...):
-    #     ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Session类的对象可以通过 &lt;code&gt;sessionmaker(bind=engine)()&lt;/code&gt; 建立，由使用数据库的模块建立、使用，并自行管理。&lt;code&gt;scoped_session&lt;/code&gt; 类给 Session 对象提供了一层透明代理，既可以像使用 Session 对象一样使用，又可以对 Session 对象进行统一管理。&lt;/p&gt;
-
-&lt;p&gt;&lt;code&gt;scoped_session&lt;/code&gt; 类的实现代码并不复杂，而且相当的精巧，下面是全部代码（为方便阅读，已删除文档字符串）：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;# file: sqlalchemy/orm/scoping.py
-
-class scoped_session(object):
-    session_factory = None
-
-    def __init__(self, session_factory, scopefunc=None):
-        self.session_factory = session_factory
-        if scopefunc:
-            self.registry = ScopedRegistry(session_factory, scopefunc)
-        else:
-            self.registry = ThreadLocalRegistry(session_factory)
-
-    def __call__(self, **kw):
-        if kw:
-            scope = kw.pop(&#39;scope&#39;, False)
-            if scope is not None:
-                if self.registry.has():
-                    raise sa_exc.InvalidRequestError(
-                        &amp;quot;Scoped session is already present; &amp;quot;
-                        &amp;quot;no new arguments may be specified.&amp;quot;)
-                else:
-                    sess = self.session_factory(**kw)
-                    self.registry.set(sess)
-                    return sess
-            else:
-                return self.session_factory(**kw)
-        else:
-            return self.registry()
-
-    def remove(self):
-        if self.registry.has():
-            self.registry().close()
-        self.registry.clear()
-
-    def configure(self, **kwargs):
-        if self.registry.has():
-            warn(&#39;At least one scoped session is already present. &#39;
-                 &#39; configure() can not affect sessions that have &#39;
-                 &#39;already been created.&#39;)
-
-        self.session_factory.configure(**kwargs)
-
-    def query_property(self, query_cls=None):
-        class query(object):
-            def __get__(s, instance, owner):
-                try:
-                    mapper = class_mapper(owner)
-                    if mapper:
-                        if query_cls:
-                            # custom query class
-                            return query_cls(mapper, session=self.registry())
-                        else:
-                            # session&#39;s configured query class
-                            return self.registry().query(mapper)
-                except orm_exc.UnmappedClassError:
-                    return None
-        return query()
-
-&amp;quot;&amp;quot;&amp;quot;Old name for backwards compatibility.&amp;quot;&amp;quot;&amp;quot;
-ScopedSession = scoped_session
-
-
-def instrument(name):
-    def do(self, *args, **kwargs):
-        return getattr(self.registry(), name)(*args, **kwargs)
-    return do
-
-for meth in Session.public_methods:
-    setattr(scoped_session, meth, instrument(meth))
-
-
-def makeprop(name):
-    def set(self, attr):
-        setattr(self.registry(), name, attr)
-
-    def get(self):
-        return getattr(self.registry(), name)
-
-    return property(get, set)
-
-for prop in (&#39;bind&#39;, &#39;dirty&#39;, &#39;deleted&#39;, &#39;new&#39;, &#39;identity_map&#39;,
-             &#39;is_active&#39;, &#39;autoflush&#39;, &#39;no_autoflush&#39;, &#39;info&#39;):
-    setattr(scoped_session, prop, makeprop(prop))
-
-
-def clslevel(name):
-    def do(cls, *args, **kwargs):
-        return getattr(Session, name)(*args, **kwargs)
-    return classmethod(do)
-
-for prop in (&#39;close_all&#39;, &#39;object_session&#39;, &#39;identity_key&#39;):
-    setattr(scoped_session, prop, clslevel(prop))
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;撇开复杂的部分不说，暂时之看这个类的透明代理性质：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;当程序需要连接数据库的时候，可以使用 &lt;code&gt;scoped_session&lt;/code&gt;，像使用&lt;code&gt;Session&lt;/code&gt;类一样，&lt;code&gt;Session&lt;/code&gt;支持的方法都支持；&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;&lt;code&gt;scoped_session&lt;/code&gt; 类通过 &lt;code&gt;instrument&lt;/code&gt;, &lt;code&gt;makeprop&lt;/code&gt;, &lt;code&gt;clslevel&lt;/code&gt; 这几个函数把 &lt;code&gt;Session&lt;/code&gt; 类的方法属性“挂接”到自己身上，实现了对 &lt;code&gt;Session&lt;/code&gt; 类的透明代理&lt;/strong&gt;；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;scoped_session&lt;/code&gt; 类通过维护 Registry 来实现程序的不同部分可以共用 Session，既节省资源，又方便不同部分共享数据（不知道这样理解对不对？）；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;scoped_session&lt;/code&gt; 对象的作用域是线程局部的，类内部通过以 &lt;code&gt;threading.local()&lt;/code&gt; 作为 Registry 的键值，来区分不同线程中的对象，不同的线程不共享Session对象，这样就实现了线程安全，写程序的时候只需要使用 &lt;code&gt;scoped_session&lt;/code&gt; 来操作就好了，而不需要再关注线程相关的东西了。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;hr /&gt;
-
-&lt;p&gt;有时候，代理类用着还是很方便的。我是一个初学者，如果本文中有谬误，请不吝指正。&lt;/p&gt;
 </description>
     </item>
     
