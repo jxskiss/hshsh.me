@@ -97,6 +97,23 @@
 <li>机械键盘上的 PrtSrc 键被 Karabiner Elements 识别出来是F13，所以就用了这个 &ldquo;F13&rdquo; 切换到 &ldquo;ikbc&rdquo; Profile。</li>
 </ul>
 
+<p>我的编码习惯经常会用到Home、End、PageUp、PageDown这几个键进行快速跳转，接上机械键盘自然能把这些键配置起来是最好了。好在实现这些功能键不需要KE和Alfred的功能，直接使用系统配置就可以完成。</p>
+
+<p>把要绑定的键的配置写入到文件&rdquo;~/Library/KeyBindings/DefaultKeyBinding.dict&rdquo;就可以了。更多绑定和功能列表请参照资料自行配置。</p>
+
+<pre><code>➜  ~ cat ~/Library/KeyBindings/DefaultKeyBinding.dict
+{
+    &quot;\UF729&quot;  = moveToBeginningOfParagraph:;  // home
+    &quot;\UF72B&quot;  = moveToEndOfParagraph:;  // end
+    &quot;$\UF729&quot; = moveToBeginningOfParagraphAndModifySelection:;  // shift-home
+    &quot;$\UF72B&quot; = moveToEndOfParagraphAndModifySelection:;  // shift-end
+    &quot;^\UF729&quot; = moveToBeginningOfDocument:;  // ctrl-home
+    &quot;^\UF72B&quot; = moveToEndOfDocument:;  // ctrl-end
+    &quot;^$\UF729&quot; = moveToBeginningOfDocumentAndModifySelection:;  // ctrl-shift-home
+    &quot;^$\UF72B&quot; = moveToEndOfDocumentAndModifySelection:;  // ctrl-shift-end
+}
+</code></pre>
+
 <p>如此，又可以用我的键盘愉快的啪啪啪了，貌似我敲键盘的声音会比较大一些，对我就是故意的😄😄😄😄😄</p>
 
 			</div>
