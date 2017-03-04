@@ -1,0 +1,108 @@
+	<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn" lang="zh-cn">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.19" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title> MacBook Pro上完美使用IKBC C87机械键盘 &middot; hshsh&#39;s little site </title>
+
+  
+  <link rel="stylesheet" href="http://hshsh.me/css/poole.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/syntax.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/hyde.css">
+  
+  <link rel="stylesheet" href="//cdn.bootcss.com/highlight.js/9.2.0/styles/default.min.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/style.css">
+
+  
+  <script type="text/javascript" src="//cdn.bootcss.com/highlight.js/9.2.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="hshsh&#39;s little site" />
+</head>
+
+	<body class="">
+		<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="http://hshsh.me/"><h1>hshsh&#39;s little site</h1></a>
+      <p class="lead">
+       假行僧 
+      </p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li><a href="/">Home</a> </li>
+      <li><a href="/post/"><span class="navlink">Blog</span></a></li>
+      <li><a href="https://github.com/jxskiss/">@Github</a></li>
+    </ul>
+
+    <p>&copy; 2014 - 2017<br>All rights reserved. </p>
+  </div>
+</div>
+
+
+		<div class="content container">
+			<div class="post">
+			 	<h1>MacBook Pro上完美使用IKBC C87机械键盘</h1>
+			  <span class="post-date">Sat, Mar 4, 2017</span>
+			      <p>最近也用上了MacBook Pro，除了吐槽一下这个Multi Touch Bar键盘敲起来没有一点手感，还有数字&rdquo;1&rdquo;左边那个丧心病狂的的&rdquo;Section（§）&rdquo;之外，其他方面用起来真心舒服。</p>
+
+<p>适应了几天Mac的键位后，琢磨着把自己的IKBC C87机械键盘接上来用，主要参考了下面的文章：</p>
+
+<ul>
+<li><a href="http://plus.zealer.com/post/56805.html">让机械键盘完美适配你的Mac！</a></li>
+<li><a href="https://damieng.com/blog/2015/04/24/make-home-end-keys-behave-like-windows-on-mac-os-x">Make Home &amp; End keys behave like Windows on Mac OS X</a></li>
+<li><a href="http://osxnotes.net/keybindings.html">DefaultKeyBinding.dict</a></li>
+</ul>
+
+<p>作为一枚死宅的程序猿，我的需求很简单：</p>
+
+<ol>
+<li>把数字&rdquo;1&rdquo;左边的Section键换回反引号键&rdquo;`~&ldquo;，把半残的左边Shift键右边的反引号键还原成Shift；</li>
+<li>把IKBC C87上的Control、Win、Alt键映射成Mac的Control、Option、Command键位顺序；</li>
+<li>把IKBC C87上的Home、End、PageUp、PageDown键功能都可以正常跳转</li>
+</ol>
+
+<p>嗯，就这样，通过一番研（sou）究（suo）之后，发现可以通过如下组合实现上面的功能：</p>
+
+<p>Karabiner Elements修改建伟映射、DefaultKeyBinding.dict修改组合键功能、Alfred控制快速切换Karabiner Elements的Profile。</p>
+
+<p>具体过程略过，简要记录一下主要配置。</p>
+
+<p>Karabiner Elements建立三个Profiles：</p>
+
+<ol>
+<li>&ldquo;none&rdquo;：原始键盘，不映射任何键位，这个主要是用作偶尔别人使用电脑不习惯改键或键位修改出现问题时，可以快速恢复；</li>
+<li>&ldquo;internal&rdquo;：这个用于映射内置键盘的&rdquo;§±&rdquo;和&rdquo;`~&ldquo;键；</li>
+<li>&ldquo;ikbc&rdquo;: 用于映射机械键盘上的Control、Win、Alt键的顺序；</li>
+</ol>
+
+<p>这三个映射使用<a href="http://www.packal.org/workflow/karabiner-elements-profile-switcher">Karabiner Elements Profile Switcher</a>这个Workflow可以快速切换。因为Karabiner Elements现在还不可以根据键盘关联自动调用对应的Profile。</p>
+
+<p>我给每个Profile都制定了一个快捷键（Alfred Trigger Hotkey）：</p>
+
+<ul>
+<li>Ctrl + Option + Command + K：切换到 &ldquo;none&rdquo; Profile；</li>
+<li>在内置键盘上使用 F12 切换到 &ldquo;internal&rdquo; Profile；</li>
+<li>机械键盘上的 PrtSrc 键被 Karabiner Elements 识别出来是F13，所以就用了这个 &ldquo;F13&rdquo; 切换到 &ldquo;ikbc&rdquo; Profile。</li>
+</ul>
+
+<p>如此，又可以用我的键盘愉快的啪啪啪了，貌似我敲键盘的声音会比较大一些，对我就是故意的😄😄😄😄😄</p>
+
+			</div>
+
+			
+		</div>
+
+  </body>
+</html>
