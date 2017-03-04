@@ -42,4 +42,22 @@ Karabiner Elements建立三个Profiles：
 - 在内置键盘上使用 F12 切换到 "internal" Profile；
 - 机械键盘上的 PrtSrc 键被 Karabiner Elements 识别出来是F13，所以就用了这个 "F13" 切换到 "ikbc" Profile。
 
+我的编码习惯经常会用到Home、End、PageUp、PageDown这几个键进行快速跳转，接上机械键盘自然能把这些键配置起来是最好了。好在实现这些功能键不需要KE和Alfred的功能，直接使用系统配置就可以完成。
+
+把要绑定的键的配置写入到文件"~/Library/KeyBindings/DefaultKeyBinding.dict"就可以了。更多绑定和功能列表请参照资料自行配置。
+
+```
+➜  ~ cat ~/Library/KeyBindings/DefaultKeyBinding.dict
+{
+    "\UF729"  = moveToBeginningOfParagraph:;  // home
+    "\UF72B"  = moveToEndOfParagraph:;  // end
+    "$\UF729" = moveToBeginningOfParagraphAndModifySelection:;  // shift-home
+    "$\UF72B" = moveToEndOfParagraphAndModifySelection:;  // shift-end
+    "^\UF729" = moveToBeginningOfDocument:;  // ctrl-home
+    "^\UF72B" = moveToEndOfDocument:;  // ctrl-end
+    "^$\UF729" = moveToBeginningOfDocumentAndModifySelection:;  // ctrl-shift-home
+    "^$\UF72B" = moveToEndOfDocumentAndModifySelection:;  // ctrl-shift-end
+}
+```
+
 如此，又可以用我的键盘愉快的啪啪啪了，貌似我敲键盘的声音会比较大一些，对我就是故意的😄😄😄😄😄
