@@ -6,8 +6,750 @@
     <description>Recent content on hshsh&#39;s little site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sat, 04 Mar 2017 14:50:00 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 13 Jun 2017 23:00:00 +0800</lastBuildDate>
     <atom:link href="http://hshsh.me/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Django Admin 定制开发技巧</title>
+      <link>http://hshsh.me/post/2017-06-13-django-admin-ticks/</link>
+      <pubDate>Tue, 13 Jun 2017 23:00:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2017-06-13-django-admin-ticks/</guid>
+      <description>
+
+&lt;h2 id=&#34;过滤器-filters&#34;&gt;过滤器（Filters）&lt;/h2&gt;
+
+&lt;h3 id=&#34;下拉列表式过滤器&#34;&gt;下拉列表式过滤器&lt;/h3&gt;
+
+&lt;p&gt;模版文件：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;{% load i18n %}
+&amp;lt;script type=&amp;quot;text/javascript&amp;quot;&amp;gt;var go_from_select = function(opt) { window.location = window.location.pathname + opt };&amp;lt;/script&amp;gt;
+&amp;lt;h3&amp;gt;{% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}&amp;lt;/h3&amp;gt;
+&amp;lt;ul class=&amp;quot;admin-filter-{{ title|cut:&#39; &#39; }}&amp;quot;&amp;gt;
+{% if choices|slice:&amp;quot;4:&amp;quot; %}
+    &amp;lt;li&amp;gt;
+    &amp;lt;select style=&amp;quot;width: 95%;&amp;quot;
+        onchange=&amp;quot;go_from_select(this.options[this.selectedIndex].value)&amp;quot;&amp;gt;
+    {% for choice in choices %}
+        &amp;lt;option{% if choice.selected %} selected=&amp;quot;selected&amp;quot;{% endif %}
+         value=&amp;quot;{{ choice.query_string|iriencode }}&amp;quot;&amp;gt;{{ choice.display }}&amp;lt;/option&amp;gt;
+    {% endfor %}
+    &amp;lt;/select&amp;gt;
+    &amp;lt;/li&amp;gt;
+{% else %}
+    {% for choice in choices %}
+        &amp;lt;li{% if choice.selected %} class=&amp;quot;selected&amp;quot;{% endif %}&amp;gt;
+        &amp;lt;a href=&amp;quot;{{ choice.query_string|iriencode }}&amp;quot;&amp;gt;{{ choice.display }}&amp;lt;/a&amp;gt;&amp;lt;/li&amp;gt;
+    {% endfor %}
+{% endif %}
+&amp;lt;/ul&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Admin代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib.admin.filters import (
+    AllValuesFieldListFilter, RelatedFieldListFilter, ChoicesFieldListFilter)
+
+
+class DropdownFilter(AllValuesFieldListFilter):
+    template = &#39;app/admin/dropdown_filter.html&#39;
+    
+
+class RelatedDropdownFilter(RelatedFieldListFilter):
+    template = &#39;app/admin/dropdown_filter.html&#39;
+
+
+class ChoicesDropdownFilter(ChoicesFieldListFilter):
+    template = &#39;app/admin/dropdown_filter.html&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;三级分类级联过滤器&#34;&gt;三级分类级联过滤器&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.contrib import admin
+
+
+class Category(models.Model):
+    code = models.CharField(verbose_name=&#39;分类代码&#39;, max_length=6)
+    name = models.CharField(verbose_name=&#39;分类名&#39;, max_length=255)
+    level = models.SmallIntegerField(verbose_name=&#39;级别&#39;)
+    lv1_code = models.CharField(verbose_name=&#39;一级代码&#39;, max_length=2, default=&#39;&#39;, blank=True)
+    lv1_name = models.CharField(verbose_name=&#39;一级分类&#39;, max_length=255, default=&#39;&#39;, blank=True)
+    lv2_code = models.CharField(verbose_name=&#39;二级代码&#39;, max_length=4, default=&#39;&#39;, blank=True)
+    lv2_name = models.CharField(verbose_name=&#39;二级分类&#39;, max_length=255, default=&#39;&#39;, blank=True)
+
+
+class Item(models.Model):
+    name = models.CharField(verbose_name=&#39;商品名&#39;, max_length=255)
+    category = models.ForeignKey(Category, verbose_name=&#39;商品分类&#39;, null=True, blank=True)
+    cover_img = models.CharField(verbose_name=&#39;封面图片&#39;, max_length=255, null=True, blank=True)
+
+
+class CategoryLv1Filter(admin.SimpleListFilter):
+    title = &#39;一级分类&#39;
+    parameter_name = &#39;cat_lv1_code__exact&#39;
+    template = &#39;app/admin/dropdown_filter.html&#39;
+
+    def lookups(self, request, model_admin):
+        cat_lv1 = Category.objects.filter(level=1)
+        return [
+            (cat.code, cat.name)
+            for cat in cat_lv1
+        ]
+
+    def queryset(self, request, queryset):
+        cat_lv1 = self.value()
+        if cat_lv1:
+            queryset = queryset.filter(category__lv1_code=cat_lv1)
+        return queryset
+
+
+class CategoryLv2Filter(admin.SimpleListFilter):
+    title = &#39;二级分类&#39;
+    parameter_name = &#39;cat_lv2_code__exact&#39;
+    template = &#39;app/admin/dropdown_filter.html&#39;
+
+    def lookups(self, request, model_admin):
+        cat_lv1 = request.GET.get(&#39;cat_lv1_code__exact&#39;)
+        if cat_lv1:
+            cat_lv2 = Category.objects.filter(level=2, lv1_code=cat_lv1)
+        else:
+            cat_lv2 = []
+        return [
+            (cat.code, cat.name)
+            for cat in cat_lv2
+        ]
+
+    def queryset(self, request, queryset):
+        cat_lv2 = self.value()
+        if cat_lv2:
+            queryset = queryset.filter(category__lv2_code=cat_lv2)
+        return queryset
+
+
+class CategoryLv3Filter(admin.SimpleListFilter):
+    title = &#39;三级分类&#39;
+    parameter_name = &#39;cat_lv3_code__exact&#39;
+    template = &#39;app/admin/dropdown_filter.html&#39;
+
+    def lookups(self, request, model_admin):
+        cat_lv1 = request.GET.get(&#39;cat_lv1_code__exact&#39;)
+        cat_lv2 = request.GET.get(&#39;cat_lv2_code__exact&#39;)
+        if cat_lv1 and cat_lv2:
+            cat_lv3 = Category.objects.filter(level=3, lv2_code=cat_lv2)
+        else:
+            cat_lv3 = []
+        return [
+            (cat.code, cat.name)
+            for cat in cat_lv3
+        ]
+
+    def queryset(self, request, queryset):
+        cat_lv3 = self.value()
+        if cat_lv3:
+            queryset = queryset.filter(category__code=cat_lv3)
+        return queryset
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    list_filter = [CategoryLv1Filter, CategoryLv2Filter, CategoryLv3Filter]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;对象表单-changelist&#34;&gt;对象表单（ChangeList）&lt;/h2&gt;
+
+&lt;h3 id=&#34;列表中显示图片-链接&#34;&gt;列表中显示图片、链接&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import admin
+
+_default_image = &#39;/static/images/common/Bmr_160.png&#39;
+
+
+def cover_img_html(obj):
+    img_url = obj.cover_img or _default_image
+    return &#39;&amp;lt;img src=&amp;quot;{}&amp;quot; style=&amp;quot;width:100px;height:100px;&amp;quot; /&amp;gt;&#39;.format(img_url)
+cover_img_html.allow_tags = True
+cover_img_html.short_description = &#39;封面图片&#39;
+
+
+class ItemAdmin(admin.ModelAdmin):
+    list_display = [cover_img_html, &#39;category_link&#39;]
+    
+    def category_link(self, obj):
+        if not obj.category:
+            return &#39;--&#39;
+        return (&#39;&amp;lt;a href=&amp;quot;/admin/app/category/{}&amp;quot; target=&amp;quot;_blank&amp;quot;&amp;gt;{}&amp;lt;/a&amp;gt;&#39;
+                .format(obj.category.id, obj.category.name))
+    category_link.allow_tags = True
+    category_link.short_description = &#39;商品分类&#39;
+    category_link.admin_order_field = &#39;category_id&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;减小外键关联下拉列表选项数量&#34;&gt;减小外键关联下拉列表选项数量&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.forms import ModelForm
+from django.contrib import admin
+
+
+class Category(models.Model):
+    code = models.CharField(verbose_name=&#39;分类代码&#39;, max_length=6)
+    name = models.CharField(verbose_name=&#39;分类名&#39;, max_length=255)
+    level = models.SmallIntegerField(verbose_name=&#39;级别&#39;)
+    lv1_code = models.CharField(verbose_name=&#39;一级代码&#39;, max_length=2, default=&#39;&#39;, blank=True)
+    lv1_name = models.CharField(verbose_name=&#39;一级分类&#39;, max_length=255, default=&#39;&#39;, blank=True)
+    lv2_code = models.CharField(verbose_name=&#39;二级代码&#39;, max_length=4, default=&#39;&#39;, blank=True)
+    lv2_name = models.CharField(verbose_name=&#39;二级分类&#39;, max_length=255, default=&#39;&#39;, blank=True)
+    
+    
+class Vendor(models.Model):
+    brand = models.CharField(verbose_name=&#39;品牌&#39;, max_length=255)
+    city = models.CharField(verbose_name=&#39;城市&#39;, max_length=255)
+    address = models.CharField(verbose_name=&#39;地址&#39;, max_length=255)
+
+
+class Item(models.Model):
+    name = models.CharField(verbose_name=&#39;商品名&#39;, max_length=255)
+    brand = models.CharField(verbose_name=&#39;品牌&#39;, max_length=255)
+    vendor = models.ForeignKey(Vendor, verbose_name=&#39;生产厂家&#39;, null=True, blank=True)
+    category = models.ForeignKey(Category, verbose_name=&#39;商品分类&#39;, null=True, blank=True)
+    cover_img = models.CharField(verbose_name=&#39;封面图片&#39;, max_length=255, null=True, blank=True)
+
+
+class ItemModelForm(ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super(ItemModelForm, self).__init__(*args, **kwargs)
+        if self.instance:
+            inst_brand = self.instance.brand
+            self.fields[&#39;vendor&#39;].queryset = Vendor.objects.filter(brand=inst_brand)
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    form = ItemModelForm
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;批量操作-actions&#34;&gt;批量操作（Actions）&lt;/h2&gt;
+
+&lt;h3 id=&#34;禁用批量删除动作&#34;&gt;禁用批量删除动作&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import admin
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+
+    def get_actions(self, request):
+        actions = super(ItemAdmin, self).get_actions(request)
+        if &#39;delete_selected&#39; in actions:
+            del actions[&#39;delete_selected&#39;]
+        return actions
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;批量执行动作&#34;&gt;批量执行动作&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import messages, admin
+
+
+def batch_remove_category(model_admin, request, queryset):
+    # batch at database level
+    queryset.update(category_id=None)
+
+    # or one by at orm level
+    for obj in queryset:
+        obj.category = None
+        obj.save()
+
+    # messages can be send to the admin page
+    messages.success(request, &#39;操作成功！&#39;)
+batch_remove_category.short_description = &#39;批量删除分类&#39;
+
+    
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    actions = [batch_remove_category, ]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;需要参数的批量执行动作&#34;&gt;需要参数的批量执行动作&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.forms import CharField
+from django.contrib import admin, messages
+from django.contrib.admin import helpers, actions
+
+
+class ChangeBrandActionForm(helpers.ActionForm):
+    brand = CharField(max_length=255, required=False)
+
+
+def batch_change_brand(model_admin, request, queryset):
+    brand = request.POST.get(&#39;brand&#39;)
+    if not brand:
+        messages.error(request, &#39;请填写非空的品牌名称！&#39;)
+    queryset.update(brand=brand)
+    messages.success(request, &#39;修改成功！&#39;)
+batch_change_brand.short_description = &#39;批量修改品牌&#39;
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    actions = [batch_change_brand, ]
+    action_form = ChangeBrandActionForm
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;动态创建批量动作&#34;&gt;动态创建批量动作&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.contrib import admin, messages
+
+
+class ItemABCType(object):
+    A = &#39;A&#39;
+    B = &#39;B&#39;
+    C = &#39;C&#39;
+    CHOICES = [
+        (A, &#39;A类商品&#39;),
+        (B, &#39;B类商品&#39;),
+        (C, &#39;C类商品&#39;)
+    ]
+
+
+class Item(models.Model):
+    abc_type = models.CharField(
+        verbose_name=&#39;商品评级&#39;, max_length=1,
+        choices=ItemABCType.CHOICES, null=True, blank=True)
+
+
+def _make_mark_action(typ, name):
+    def mark_action_func(model_admin, request, queryset):
+        queryset.update(type=typ)
+        messages.success(request, &#39;操作成功！&#39;)
+
+    action_name = &#39;mark_action_func_{}&#39;.format(typ)
+    mark_action_func.func_name = action_name
+    mark_action_func.short_description = &#39;商品评级：{}&#39;.format(name)
+    return mark_action_func
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    actions = [_make_mark_action(typ, name) for typ, name in ItemABCType.CHOICES]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;对所有行执行指定操作&#34;&gt;对所有行执行指定操作&lt;/h3&gt;
+
+&lt;p&gt;其他适用场景：批量／全量下载文件，跨库同步。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.contrib import admin, messages
+
+
+class Category(models.Model):
+    pinyin = models.TextField(verbose_name=&#39;拼音&#39;, default=&#39;&#39;, blank=True)
+
+    def update_pinyin(self):
+        pinyin = &#39;&#39;
+        self.pinyin = pinyin
+        self.save()
+
+
+def batch_update_pinyin(model_admin, request, queryset):
+    count = queryset.count()
+    for cat in queryset:
+        cat.update_pinyin()
+    messages.success(request, &#39;成功更新%d条拼音！&#39; % count)
+batch_update_pinyin.short_description = &#39;批量更新分类拼音&#39;
+
+
+class CategoryAdmin(admin.ModelAdmin):
+    # ...
+    actions = [batch_update_pinyin, ]
+    
+    def changelist_view(self, request, extra_context=None):
+        &amp;quot;&amp;quot;&amp;quot;
+        Override to allow action on all records without selection.
+        &amp;quot;&amp;quot;&amp;quot;
+        if (request.POST.get(&#39;action&#39;) == &#39;batch_update_pinyin&#39; and
+                not request.POST.getlist(admin.ACTION_CHECKBOX_NAME)):
+            post = request.POST.copy()
+            for cat in Category.objects.all():
+                post.update({admin.ACTION_CHECKBOX_NAME: str(cat.id)})
+            request._set_post(post)
+        return super(CategoryAdmin, self).changelist_view(request, extra_context)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;页面交互&#34;&gt;页面交互&lt;/h2&gt;
+
+&lt;h3 id=&#34;对象编辑页面添加特殊字段&#34;&gt;对象编辑页面添加特殊字段&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.forms import ModelForm, CharField
+from django.contrib import admin
+
+
+class ItemAdminForm(ModelForm):
+
+    upload_img_url = CharField(max_length=255, required=False)
+
+    def save(self, commit=True):
+        upload_img_url = self.cleaned_data.get(&#39;upload_img_url&#39;)
+        if upload_img_url:
+            self.upload_image(upload_img_url)
+        return super(ItemAdminForm, self).save(commit)
+
+    def upload_image(self, image_url):
+        pass
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    form = ItemAdminForm
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;用js定制复杂交互功能&#34;&gt;用JS定制复杂交互功能&lt;/h3&gt;
+
+&lt;p&gt;模版文件：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;{% extends &amp;quot;admin/change_list.html&amp;quot; %}
+
+{% block extrahead %}
+{{ block.super }}
+&amp;lt;link href=&amp;quot;//cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.css&amp;quot; rel=&amp;quot;stylesheet&amp;quot;&amp;gt;
+&amp;lt;script src=&amp;quot;//cdn.bootcss.com/jquery/3.1.0/jquery.min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+&amp;lt;script src=&amp;quot;//cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+&amp;lt;script src=&amp;quot;//cdn.bootcss.com/lodash.js/4.17.4/lodash.min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+&amp;lt;script&amp;gt;
+$(function () {
+  var extraStyles = &#39; \
+        &amp;lt;style type=&amp;quot;text/css&amp;quot;&amp;gt; \
+        /* .actions {position: fixed;} */ \
+        .field-name input {width: 10em;} \
+        .field-brand input, .field-spec input, .field-price input {width: 4em;} \
+        input[type=checkbox] {transform: scale(1.4);} \
+        .hover-image { \
+            display: none; padding: 30px; \
+            position: fixed; top: 50%; left: 50%; \
+            transform: translate(-50%, -50%); z-index: 1; \
+            width: 400px; height: 400px; \
+            border: 1px solid #cecece; background: #fff; \
+        } \
+        &amp;lt;/style&amp;gt;&#39;
+  $(extraStyles).appendTo($(&#39;head&#39;))
+})
+
+window.onload = function () {
+  var categoryHTML = &#39; \
+        &amp;lt;div class=&amp;quot;wrap&amp;quot;&amp;gt; \
+        &amp;lt;input name=&amp;quot;action_category&amp;quot; type=&amp;quot;text&amp;quot; class=&amp;quot;search&amp;quot;&amp;gt; \
+        &amp;lt;div class=&amp;quot;menu&amp;quot;&amp;gt;&amp;lt;/div&amp;gt; \
+        &amp;lt;/div&amp;gt;&#39;
+  $(&#39;.actions input[name=&amp;quot;action_category&amp;quot;]&#39;.replaceWith(categoryHTML))
+
+  var hoverImageHTML = &#39;&amp;lt;img src=&amp;quot;&amp;quot; class=&amp;quot;hover-image&amp;quot;/&amp;gt;&#39;
+  $(hoverImageHTML).appendTo($(&#39;body&#39;))
+
+  // show image when mouse move over image links
+  $(&#39;tbody&#39;).on({
+    mouseenter: function () {
+      var href = $(this).attr(&#39;href&#39;)
+      $(&#39;.hover-image&#39;).attr(&#39;src&#39;, href).show()
+      return false
+    },
+    mouseleave: function () {
+      $(&#39;.hover-image&#39;).hide()
+      return false
+    }
+  }, &#39;a.images&#39;)
+
+  // disable editing when item has already been verified
+  $(&#39;.link-actions.reset&#39;).each(function () {
+    var parent = $(this).parent().parent()
+    parent.find(&#39;input, select&#39;).attr(&#39;disabled&#39;, &#39;disabled&#39;).css(&#39;background&#39;, &#39;#efeeee&#39;)
+    parent.find(&#39;a.change-related, a.add-related&#39;).hide()
+  })
+
+  // the disabled lines should be enabled before saving request
+  // to avoid form validation errors
+  $(&#39;input[type=submit][value=Save]&#39;).on(&#39;click&#39;, function () {
+    $(&#39;tr input:not([type=&amp;quot;checkbox&amp;quot;]):disabled&#39;).removeAttr(&#39;disabled&#39;)
+  })
+
+  // ajax request for removing barcode/tmall_id/jd_id/yhd_id
+  $(&#39;td&#39;).on(&#39;click&#39;, &#39;.ui.mini.button.inline&#39;, function () {
+    var that = $(this)
+    // get desired parameters
+
+    $.ajax({
+      url: &#39;/api/path/to/remove/relation&#39;,
+      type: &#39;POST&#39;,
+      data: {
+        // parameters
+      },
+      success: function (status) {
+        console.log(status)
+      },
+      error: function (XMLHttpRequest, textStatus, errorThrown) {
+        console.log(XMLHttpRequest.responseText)
+      }
+    })
+  })
+
+  // ajax requests for item operation actions
+  $(&#39;.link-actions&#39;).click(function () {
+    var that = $(this)
+    // get desired parameters
+
+    $.ajax({
+      // pass
+    })
+  })
+
+  // searching for categories using ajax requests
+  $(&#39;input.search[name=&amp;quot;action_category&amp;quot;]&#39;).on(&#39;input&#39;, _.debounce(function () {
+    var keyword = $(this).val();
+    var regular = /^[0-9A-Za-z\u4e00-\u9fa5]{3,}$/
+    if (keyword === String(keyword.match(regular))) {
+      $.ajax({
+        url: &#39;/api/path/to/category/search?keyword=&#39; + keyword,
+        type: &#39;GET&#39;,
+        success: function (data) {
+          if (data.code === 0) {
+            $(&#39;.menu&#39;).children().remove()
+            for (var i = 0; i &amp;lt; data.results.length; i++) {
+              var item = &#39;&amp;lt;div class=&amp;quot;item&amp;quot; data-value=&#39; + data.results[i].code + &#39;&amp;gt;&#39;
+                + data.results[i].name + &#39;&amp;lt;/div&amp;gt;&#39;
+              $(&#39;.menu&#39;).append(item)
+            }
+            $(&#39;.menu&#39;).show()
+          } else {
+            alert(data)
+          }
+        },
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+          alert(XMLHttpRequest.responseText)
+        }
+      })
+    }
+  }, 800))
+
+  // category selection items click events
+  $(&#39;.menu&#39;).on(&#39;click&#39;, &#39;.item&#39;, function (e) {
+    e.stopPropagation()
+    $(&#39;input.search&#39;).val($(this).data(&#39;value&#39;))
+    $(&#39;.menu&#39;).hide()
+  })
+}
+&amp;lt;/script&amp;gt;
+{% endblock %}
+
+&amp;lt;!-- show pagination on both top and bottom --&amp;gt;
+{% block result_list %}
+    {% block pagination %} {{ block.super }} {% endblock %}
+    {{ block.super }}
+{% endblock %}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Admin代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.contrib import admin
+from django.contrib.postgres.fields import ArrayField
+
+
+class StdItemStatus(object):
+    NEW = &#39;new&#39;
+    PENDING_REVIEW = &#39;pending_review&#39;
+    HALF_REVIEW = &#39;half_review&#39;
+    HUMAN_VERIFIED = &#39;human_verified&#39;
+    AUTO_VERIFIED = &#39;auto_verified&#39;
+    DELETED = &#39;deleted&#39;
+    NA = &#39;na&#39;
+
+    CHOICES = [
+        (NEW, &#39;新增标品&#39;),
+        (PENDING_REVIEW, &#39;待审核&#39;),
+        (HALF_REVIEW, &#39;半审核&#39;),
+        (HUMAN_VERIFIED, &#39;已通过人工审核&#39;),
+        (AUTO_VERIFIED, &#39;已通过自动审核&#39;),
+        (DELETED, &#39;已删除&#39;),
+        (NA, &#39;不处理&#39;),
+    ]
+    
+
+
+class Item(models.Model):
+    # ...
+    barcodes = ArrayField(
+    models.TextField(), verbose_name=&#39;商品条码&#39;, null=True, blank=True)
+    status = models.CharField(
+        verbose_name=&#39;状态&#39;, max_length=20,
+        default=StdItemStatus.NEW, choices=StdItemStatus.CHOICES)
+
+    @property
+    def is_verified(self):
+        return self.status in (
+            StdItemStatus.HUMAN_VERIFIED, StdItemStatus.AUTO_VERIFIED,
+            StdItemStatus.DELETED, StdItemStatus.NA,
+        )
+
+
+def images_html(item_obj):
+    from os.path import basename
+    images = item_obj.images or []
+    html = &#39;&amp;lt;br&amp;gt;&#39;.join(map(
+        lambda url:
+            &#39;&amp;lt;a class=&amp;quot;images&amp;quot; href=&amp;quot;{url}&amp;quot; target=&amp;quot;_blank&amp;quot;&amp;gt;{name}&amp;lt;/a&amp;gt;&#39;
+            .format(url=url, name=basename(url)[:8]),
+        images
+    ))
+    return html or &#39;--&#39;
+
+
+def barcodes_html(item_obj):
+    barcodes = item_obj.barcodes or []
+    if item_obj.is_verified:
+        html = &#39;&amp;lt;br&amp;gt;&#39;.join(map(
+            lambda bc: &#39;&amp;lt;span&amp;gt;{}&amp;lt;/span&amp;gt;&#39;.format(bc),
+            barcodes
+        ))
+    else:
+        html = &#39;&amp;lt;br&amp;gt;&#39;.join(map(
+            lambda bc: &#39;&amp;lt;span&amp;gt;{}&amp;lt;/span&amp;gt;&amp;lt;span class=&amp;quot;mini ui button inline&amp;quot;&amp;gt;X&amp;lt;/span&amp;gt;&#39;,
+            barcodes
+        ))
+        html += &#39;&amp;lt;br&amp;gt;&amp;lt;span class=&amp;quot;tiny ui button&amp;quot;&amp;gt;添加&amp;lt;/span&amp;gt;&#39;
+    return html or &#39;--&#39;
+barcodes_html.allow_tags = True
+barcodes_html.short_description = &#39;商品条码&#39;
+
+
+def operation_links(item_obj):
+    if not item_obj.is_verified:
+        edit = &#39;&amp;lt;a href=&amp;quot;/admin/app/item/{id}&amp;quot; target=&amp;quot;_blank&amp;quot;&amp;gt;修改&amp;lt;/a&amp;gt;&#39;.format(id=item_obj.id)
+        verify = &#39;&amp;lt;a class=&amp;quot;link-actions verify&amp;quot; data-action=&amp;quot;verify&amp;quot; href=&amp;quot;javascript:&amp;quot;&amp;gt;通过&amp;lt;/a&amp;gt;&#39;
+        remove = &#39;&amp;lt;a class=&amp;quot;link-actions remove&amp;quot; data-action=&amp;quot;delete&amp;quot; href=&amp;quot;javascript:&amp;quot;&amp;gt;删除&amp;lt;/a&amp;gt;&#39;
+        return &#39;&amp;lt;br&amp;gt;&#39;.join([edit, verify, remove])
+    else:
+        reset = &#39;&amp;lt;a class=&amp;quot;link-actions reset&amp;quot; data-action=&amp;quot;reset&amp;quot; href=&amp;quot;javascript:&amp;quot;&amp;gt;重置状态&amp;lt;/a&amp;gt;&#39;
+        return reset
+operation_links.allow_tags = True
+operation_links.short_description = &#39;审核操作&#39;
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    list_display = [images_html, barcodes_html, operation_links, ]
+    list_display_links = None
+    list_per_page = 5
+
+    change_list_template = &#39;app/admin/item_change_list.html&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;其他技巧&#34;&gt;其他技巧&lt;/h2&gt;
+
+&lt;h3 id=&#34;事务控制&#34;&gt;事务控制&lt;/h3&gt;
+
+&lt;p&gt;其他适用场景：订单相关操作，运营操作日志。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models, transaction
+from django.contrib.postgres.fields import ArrayField
+
+
+class Item(models.Model):
+    barcodes = ArrayField(
+        models.TextField(), verbose_name=&#39;国际条码&#39;, null=True, blank=True)
+    tmall_ids = ArrayField(
+        models.TextField(), verbose_name=&#39;天猫IDs&#39;, null=True, blank=True)
+    jd_ids = ArrayField(
+        models.TextField(), verbose_name=&#39;京东IDs&#39;, null=True, blank=True)
+    yhd_ids = ArrayField(
+        models.TextField(), verbose_name=&#39;一号店IDs&#39;, null=True, blank=True)
+
+    def fix_m2m_conflict(self, conflict_fields):
+        # fix conflicts between different items
+        # in case of un-fixable errors, raise exceptions
+        pass
+
+    def save_relations(self, related_fields):
+        # the related barcode, tmall/jd/yhd items should be saved
+        # together with the item
+        pass
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        # ...
+        conflict_fields = []
+        related_fields = []
+
+        try:
+            # all success or all fail
+            with transaction.atomic():
+                self.fix_m2m_conflict(conflict_fields)
+                self.save_relations(related_fields)
+                super(Item, self).save(force_insert, force_update, using, update_fields)
+        except Exception as err:
+            # NOTE: exceptions should be handled outside the transaction context
+            pass
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;自动注册admin类&#34;&gt;自动注册Admin类&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import admin
+
+from .models import *
+
+# ModelAdmin classes definitions
+
+# register all admin models which end with &amp;quot;Admin&amp;quot;
+_locals = locals()
+_obj_name = _obj = _m = None
+for _obj_name, _obj in _locals.items():
+    if (_obj_name.endswith(&#39;Admin&#39;) and
+            issubclass(_obj, admin.ModelAdmin) and
+            _obj is not admin.ModelAdmin):
+        _m = _locals[_obj_name.replace(&#39;Admin&#39;, &#39;&#39;)]
+        admin.site.register(_m, _obj)
+del _locals, _obj_name, _obj, _m
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;在后台界面查看操作日志&#34;&gt;在后台界面查看操作日志&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import admin
+from django.contrib.admin.models import LogEntry
+
+
+class LogEntryAdmin(admin.ModelAdmin):
+    &amp;quot;&amp;quot;&amp;quot;
+    Admin of the history/log table for view only purpose.
+    &amp;quot;&amp;quot;&amp;quot;
+    list_display = [
+        &#39;action_time&#39;, &#39;user&#39;, &#39;content_type&#39;, &#39;object_id&#39;, &#39;object_repr&#39;,
+        &#39;action_flag&#39;, &#39;change_message&#39;]
+    readonly_fields = [
+        &#39;user&#39;, &#39;content_type&#39;, &#39;object_id&#39;, &#39;object_repr&#39;, &#39;action_flag&#39;,
+        &#39;change_message&#39;]
+    list_filter = [&#39;action_time&#39;, &#39;user&#39;, &#39;content_type&#39;]
+    ordering = [&#39;-action_time&#39;]
+    list_display_links = None
+    actions = None
+
+    # We don&#39;t want people changing this historical record
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def save_model(self, request, obj, form, change):
+        from django.core.exceptions import SuspiciousOperation
+        raise SuspiciousOperation(&#39;log entry should not be changed&#39;)
+
+
+admin.site.register(LogEntry, LogEntryAdmin)
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
     
     <item>
       <title>MacBook Pro上完美使用IKBC C87机械键盘</title>
@@ -1530,563 +2272,6 @@ frame2
 &lt;li&gt;is_unique：当Index没有重复值时，返回 True&lt;/li&gt;
 &lt;li&gt;unique：计算Index中唯一值的数组&lt;/li&gt;
 &lt;/ul&gt;
-</description>
-    </item>
-    
-    <item>
-      <title>Pandas学习笔记（一）：CSV数据加载保存</title>
-      <link>http://hshsh.me/post/2016-04-12-python-pandas-notes-01/</link>
-      <pubDate>Tue, 12 Apr 2016 18:52:25 +0800</pubDate>
-      
-      <guid>http://hshsh.me/post/2016-04-12-python-pandas-notes-01/</guid>
-      <description>
-
-&lt;h2 id=&#34;加载csv数据&#34;&gt;加载CSV数据&lt;/h2&gt;
-
-&lt;p&gt;很多数据都存储在CSV文件中，Pandas 为读取提供了一个强大的 &lt;code&gt;read_csv&lt;/code&gt; 函数，这个函数接受很多可选参数，通过参数控制数据加载的方式，以及一些基本的清理工作。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;pd.read_csv(filepath_or_buffer, sep=&#39;,&#39;, delimiter=None, header=&#39;infer&#39;,
-    names=None, index_col=None, usecols=None, squeeze=False, prefix=None,
-    mangle_dupe_cols=True, dtype=None, engine=None, converters=None,
-    true_values=None, false_values=None, skipinitialspace=False,
-    skiprows=None, skipfooter=None, nrows=None, na_values=None,
-    keep_default_na=True, na_filter=True, verbose=False, skip_blank_lines=True,
-    parse_dates=False, infer_datetime_format=False, keep_date_col=False,
-    date_parser=None, dayfirst=False, iterator=False, chunksize=None,
-    compression=&#39;infer&#39;, thousands=None, decimal=&#39;.&#39;, lineterminator=None,
-    quotechar=&#39;&amp;quot;&#39;, quoting=0, escapechar=None, comment=None, encoding=None,
-    dialect=None, tupleize_cols=False, error_bad_lines=True,
-    warn_bad_lines=True, skip_footer=0, doublequote=True,
-    delim_whitespace=False, as_recarray=False, compact_ints=False,
-    use_unsigned=False, low_memory=True, buffer_lines=None, memory_map=False,
-    float_precision=None)
-
-Returns
-    result : DataFrame or TextParser
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;很多参数都是非常有用的，简要记录一下（详细文档请参考 &lt;code&gt;help(pd.read_csv)&lt;/code&gt; 及官方文档）：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;code&gt;filepath_or_buffer&lt;/code&gt;：参数名字本身反映了功能
-
-&lt;ul&gt;
-&lt;li&gt;这里可以接受一个文件名，或者一个URL，&lt;/li&gt;
-&lt;li&gt;也可以接受一个打开的文件句柄，&lt;/li&gt;
-&lt;li&gt;或者其他任何提供了&lt;code&gt;read&lt;/code&gt;方法的对象，&lt;/li&gt;
-&lt;li&gt;举个栗子：某个URL输出CSV，但是需要验证密码，那么就没法让 &lt;code&gt;read_csv&lt;/code&gt; 直接读取URL，但是可以使用 &lt;code&gt;urlopen&lt;/code&gt; 发送附带了验证信息的Request，并把返回的 Response 对象传给 &lt;code&gt;read_csv&lt;/code&gt; 函数，进而通过 Response 对象的 &lt;code&gt;read&lt;/code&gt; 方法加载数据；&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;sep&lt;/code&gt; 和 &lt;code&gt;delimiter&lt;/code&gt;：这两个参数是一个意思，&lt;code&gt;delimiter&lt;/code&gt;是&lt;code&gt;sep&lt;/code&gt;的别名；如果指定为 &lt;code&gt;\t&lt;/code&gt;（制表符）的话，就可以实现 &lt;code&gt;read_table&lt;/code&gt; 的默认功能；支持使用正则表达式来匹配某些不标准的CSV文件；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;header&lt;/code&gt; 和 &lt;code&gt;names&lt;/code&gt;：配合使用指定加载后的列名；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;parse_dates&lt;/code&gt;：boolean or list of ints or names or list of lists or dict, default False. 这个参数指定对CSV文件中日期序列的处理方式：
-
-&lt;ul&gt;
-&lt;li&gt;默认为False，原样加载，不解析日期时间，&lt;/li&gt;
-&lt;li&gt;可以为True，尝试解析日期索引，&lt;/li&gt;
-&lt;li&gt;可以为数字或 &lt;code&gt;names&lt;/code&gt; 的列表，解析指定的列为时间序列，&lt;/li&gt;
-&lt;li&gt;可以为以列表为元素的列表，解析每个子列表中的字段组合为时间序列，&lt;/li&gt;
-&lt;li&gt;可以为值为列表的字典，解析每个列表中的字段组合为时间序列，并命名为字典中对应的键值；&lt;/li&gt;
-&lt;/ul&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;date_parser&lt;/code&gt;：可以指定一个自定义函数解析日期；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;keep_date_col&lt;/code&gt;：解析出日期序列后，是否保留原来的列；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;dayfirst&lt;/code&gt;：boolean, default False, DD/MM format dates, international and European format；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;iterator&lt;/code&gt;：boolean, default False，Return TextFileReader object for iteration or getting chunks with &lt;code&gt;get_chunk()&lt;/code&gt;；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;encoding&lt;/code&gt;：指定读取或写入CSV文件时使用的字符集，支持 &lt;a href=&#34;https://docs.python.org/3/library/codecs.html#standard-encodings&#34;&gt;codecs 包中的标准字符集&lt;/a&gt;；&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;index_col&lt;/code&gt;：数字、列名或列表，数字或列名指定某一列作为索引，列表制定某几列作为 DataFrame 的层次索引；&lt;/li&gt;
-&lt;li&gt;可以使用&lt;code&gt;skip_initialspace&lt;/code&gt;, &lt;code&gt;skiprows&lt;/code&gt;, &lt;code&gt;skipfooter&lt;/code&gt;, &lt;code&gt;comment&lt;/code&gt;, &lt;code&gt;float_precision&lt;/code&gt;等参数做一些基本的清理动作。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;下面举个例子来简单演示一下 &lt;code&gt;parse_dates&lt;/code&gt; 和 &lt;code&gt;data_parser&lt;/code&gt; 的使用：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;import pandas as pd
-from tempfile import TemporaryFile
-
-mycsv = [&amp;quot;date,hour,A1,A2,A3,A4,A5,A6,date2,hour2&amp;quot;,
-    &amp;quot;20150102,1,117,85,109,132,166,113,20160102,2&amp;quot;,
-    &amp;quot;20150102,2,88,34,82,100,126,85,20160102,3&amp;quot;,
-    &amp;quot;20150102,3,48,54,38,50,55,46,20160102,4&amp;quot;,
-    &amp;quot;20150102,4,141,120,154,148,175,114,20160102,5&amp;quot;,
-    &amp;quot;20150102,5,91,64,74,71,84,70,20160102,6&amp;quot;,
-    &amp;quot;20150102,6,45,10,46,20,68,44,20160102,7&amp;quot;]
-
-tmp_csv_file = TemporaryFile()
-tmp_csv_file.write(&#39;\n&#39;.join(mycsv))
-tmp_csv_file.flush()
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;tmp_csv_file.seek(0)
-df = pd.read_csv(tmp_csv_file)
-df
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;div&gt;
-&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
-  &lt;thead&gt;
-    &lt;tr style=&#34;text-align: right;&#34;&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;date&lt;/th&gt;
-      &lt;th&gt;hour&lt;/th&gt;
-      &lt;th&gt;A1&lt;/th&gt;
-      &lt;th&gt;A2&lt;/th&gt;
-      &lt;th&gt;A3&lt;/th&gt;
-      &lt;th&gt;A4&lt;/th&gt;
-      &lt;th&gt;A5&lt;/th&gt;
-      &lt;th&gt;A6&lt;/th&gt;
-      &lt;th&gt;date2&lt;/th&gt;
-      &lt;th&gt;hour2&lt;/th&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-    &lt;tr&gt;
-      &lt;th&gt;0&lt;/th&gt;
-      &lt;td&gt;20150102&lt;/td&gt;
-      &lt;td&gt;1&lt;/td&gt;
-      &lt;td&gt;117&lt;/td&gt;
-      &lt;td&gt;85&lt;/td&gt;
-      &lt;td&gt;109&lt;/td&gt;
-      &lt;td&gt;132&lt;/td&gt;
-      &lt;td&gt;166&lt;/td&gt;
-      &lt;td&gt;113&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;2&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;1&lt;/th&gt;
-      &lt;td&gt;20150102&lt;/td&gt;
-      &lt;td&gt;2&lt;/td&gt;
-      &lt;td&gt;88&lt;/td&gt;
-      &lt;td&gt;34&lt;/td&gt;
-      &lt;td&gt;82&lt;/td&gt;
-      &lt;td&gt;100&lt;/td&gt;
-      &lt;td&gt;126&lt;/td&gt;
-      &lt;td&gt;85&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;3&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2&lt;/th&gt;
-      &lt;td&gt;20150102&lt;/td&gt;
-      &lt;td&gt;3&lt;/td&gt;
-      &lt;td&gt;48&lt;/td&gt;
-      &lt;td&gt;54&lt;/td&gt;
-      &lt;td&gt;38&lt;/td&gt;
-      &lt;td&gt;50&lt;/td&gt;
-      &lt;td&gt;55&lt;/td&gt;
-      &lt;td&gt;46&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;4&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;3&lt;/th&gt;
-      &lt;td&gt;20150102&lt;/td&gt;
-      &lt;td&gt;4&lt;/td&gt;
-      &lt;td&gt;141&lt;/td&gt;
-      &lt;td&gt;120&lt;/td&gt;
-      &lt;td&gt;154&lt;/td&gt;
-      &lt;td&gt;148&lt;/td&gt;
-      &lt;td&gt;175&lt;/td&gt;
-      &lt;td&gt;114&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;5&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;4&lt;/th&gt;
-      &lt;td&gt;20150102&lt;/td&gt;
-      &lt;td&gt;5&lt;/td&gt;
-      &lt;td&gt;91&lt;/td&gt;
-      &lt;td&gt;64&lt;/td&gt;
-      &lt;td&gt;74&lt;/td&gt;
-      &lt;td&gt;71&lt;/td&gt;
-      &lt;td&gt;84&lt;/td&gt;
-      &lt;td&gt;70&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;6&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;5&lt;/th&gt;
-      &lt;td&gt;20150102&lt;/td&gt;
-      &lt;td&gt;6&lt;/td&gt;
-      &lt;td&gt;45&lt;/td&gt;
-      &lt;td&gt;10&lt;/td&gt;
-      &lt;td&gt;46&lt;/td&gt;
-      &lt;td&gt;20&lt;/td&gt;
-      &lt;td&gt;68&lt;/td&gt;
-      &lt;td&gt;44&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;7&lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;
-&lt;/div&gt;
-
-&lt;p&gt;从上面的示例中，可以看到使用默认参数时，&lt;code&gt;read_csv&lt;/code&gt; 函数不会尝试解析日期，这样可以提高文件的加载速度。&lt;/p&gt;
-
-&lt;p&gt;但是第一列日期和第二列小时构成了我们需要的时间戳，加载了CSV后我们需要进行处理，那能不能在加载CSV的时候就直接解析出来呢？我们可以试一试 &lt;code&gt;parse_dates&lt;/code&gt; 参数，把第一列和第二列的索引组成一个列表传给 &lt;code&gt;parse_dates&lt;/code&gt; 参数：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;tmp_csv_file.seek(0)
-df = pd.read_csv(tmp_csv_file, parse_dates=[0, 1])
-df
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;div&gt;
-&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
-  &lt;thead&gt;
-    &lt;tr style=&#34;text-align: right;&#34;&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;date&lt;/th&gt;
-      &lt;th&gt;hour&lt;/th&gt;
-      &lt;th&gt;A1&lt;/th&gt;
-      &lt;th&gt;A2&lt;/th&gt;
-      &lt;th&gt;A3&lt;/th&gt;
-      &lt;th&gt;A4&lt;/th&gt;
-      &lt;th&gt;A5&lt;/th&gt;
-      &lt;th&gt;A6&lt;/th&gt;
-      &lt;th&gt;date2&lt;/th&gt;
-      &lt;th&gt;hour2&lt;/th&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-    &lt;tr&gt;
-      &lt;th&gt;0&lt;/th&gt;
-      &lt;td&gt;2015-01-02&lt;/td&gt;
-      &lt;td&gt;1&lt;/td&gt;
-      &lt;td&gt;117&lt;/td&gt;
-      &lt;td&gt;85&lt;/td&gt;
-      &lt;td&gt;109&lt;/td&gt;
-      &lt;td&gt;132&lt;/td&gt;
-      &lt;td&gt;166&lt;/td&gt;
-      &lt;td&gt;113&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;2&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;1&lt;/th&gt;
-      &lt;td&gt;2015-01-02&lt;/td&gt;
-      &lt;td&gt;2&lt;/td&gt;
-      &lt;td&gt;88&lt;/td&gt;
-      &lt;td&gt;34&lt;/td&gt;
-      &lt;td&gt;82&lt;/td&gt;
-      &lt;td&gt;100&lt;/td&gt;
-      &lt;td&gt;126&lt;/td&gt;
-      &lt;td&gt;85&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;3&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2&lt;/th&gt;
-      &lt;td&gt;2015-01-02&lt;/td&gt;
-      &lt;td&gt;3&lt;/td&gt;
-      &lt;td&gt;48&lt;/td&gt;
-      &lt;td&gt;54&lt;/td&gt;
-      &lt;td&gt;38&lt;/td&gt;
-      &lt;td&gt;50&lt;/td&gt;
-      &lt;td&gt;55&lt;/td&gt;
-      &lt;td&gt;46&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;4&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;3&lt;/th&gt;
-      &lt;td&gt;2015-01-02&lt;/td&gt;
-      &lt;td&gt;4&lt;/td&gt;
-      &lt;td&gt;141&lt;/td&gt;
-      &lt;td&gt;120&lt;/td&gt;
-      &lt;td&gt;154&lt;/td&gt;
-      &lt;td&gt;148&lt;/td&gt;
-      &lt;td&gt;175&lt;/td&gt;
-      &lt;td&gt;114&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;5&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;4&lt;/th&gt;
-      &lt;td&gt;2015-01-02&lt;/td&gt;
-      &lt;td&gt;5&lt;/td&gt;
-      &lt;td&gt;91&lt;/td&gt;
-      &lt;td&gt;64&lt;/td&gt;
-      &lt;td&gt;74&lt;/td&gt;
-      &lt;td&gt;71&lt;/td&gt;
-      &lt;td&gt;84&lt;/td&gt;
-      &lt;td&gt;70&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;6&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;5&lt;/th&gt;
-      &lt;td&gt;2015-01-02&lt;/td&gt;
-      &lt;td&gt;6&lt;/td&gt;
-      &lt;td&gt;45&lt;/td&gt;
-      &lt;td&gt;10&lt;/td&gt;
-      &lt;td&gt;46&lt;/td&gt;
-      &lt;td&gt;20&lt;/td&gt;
-      &lt;td&gt;68&lt;/td&gt;
-      &lt;td&gt;44&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;7&lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;
-&lt;/div&gt;
-
-&lt;p&gt;我们看到第一列被成功的解析成了日期数据，但是并没有按照我们想象的那样把第一列和第二列一起解析成一个日期时间对象。&lt;/p&gt;
-
-&lt;p&gt;这是因为我们&lt;strong&gt;传递参数的姿势不对&lt;/strong&gt;，正确的应该是这样：&lt;code&gt;parse_dates=[[0, 1]]&lt;/code&gt;，再试一下：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;tmp_csv_file.seek(0)
-df = pd.read_csv(tmp_csv_file, parse_dates=[[0, 1]])
-df
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;div&gt;
-&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
-  &lt;thead&gt;
-    &lt;tr style=&#34;text-align: right;&#34;&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;date_hour&lt;/th&gt;
-      &lt;th&gt;A1&lt;/th&gt;
-      &lt;th&gt;A2&lt;/th&gt;
-      &lt;th&gt;A3&lt;/th&gt;
-      &lt;th&gt;A4&lt;/th&gt;
-      &lt;th&gt;A5&lt;/th&gt;
-      &lt;th&gt;A6&lt;/th&gt;
-      &lt;th&gt;date2&lt;/th&gt;
-      &lt;th&gt;hour2&lt;/th&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-    &lt;tr&gt;
-      &lt;th&gt;0&lt;/th&gt;
-      &lt;td&gt;20150102 1&lt;/td&gt;
-      &lt;td&gt;117&lt;/td&gt;
-      &lt;td&gt;85&lt;/td&gt;
-      &lt;td&gt;109&lt;/td&gt;
-      &lt;td&gt;132&lt;/td&gt;
-      &lt;td&gt;166&lt;/td&gt;
-      &lt;td&gt;113&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;2&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;1&lt;/th&gt;
-      &lt;td&gt;20150102 2&lt;/td&gt;
-      &lt;td&gt;88&lt;/td&gt;
-      &lt;td&gt;34&lt;/td&gt;
-      &lt;td&gt;82&lt;/td&gt;
-      &lt;td&gt;100&lt;/td&gt;
-      &lt;td&gt;126&lt;/td&gt;
-      &lt;td&gt;85&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;3&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2&lt;/th&gt;
-      &lt;td&gt;20150102 3&lt;/td&gt;
-      &lt;td&gt;48&lt;/td&gt;
-      &lt;td&gt;54&lt;/td&gt;
-      &lt;td&gt;38&lt;/td&gt;
-      &lt;td&gt;50&lt;/td&gt;
-      &lt;td&gt;55&lt;/td&gt;
-      &lt;td&gt;46&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;4&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;3&lt;/th&gt;
-      &lt;td&gt;20150102 4&lt;/td&gt;
-      &lt;td&gt;141&lt;/td&gt;
-      &lt;td&gt;120&lt;/td&gt;
-      &lt;td&gt;154&lt;/td&gt;
-      &lt;td&gt;148&lt;/td&gt;
-      &lt;td&gt;175&lt;/td&gt;
-      &lt;td&gt;114&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;5&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;4&lt;/th&gt;
-      &lt;td&gt;20150102 5&lt;/td&gt;
-      &lt;td&gt;91&lt;/td&gt;
-      &lt;td&gt;64&lt;/td&gt;
-      &lt;td&gt;74&lt;/td&gt;
-      &lt;td&gt;71&lt;/td&gt;
-      &lt;td&gt;84&lt;/td&gt;
-      &lt;td&gt;70&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;6&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;5&lt;/th&gt;
-      &lt;td&gt;20150102 6&lt;/td&gt;
-      &lt;td&gt;45&lt;/td&gt;
-      &lt;td&gt;10&lt;/td&gt;
-      &lt;td&gt;46&lt;/td&gt;
-      &lt;td&gt;20&lt;/td&gt;
-      &lt;td&gt;68&lt;/td&gt;
-      &lt;td&gt;44&lt;/td&gt;
-      &lt;td&gt;20160102&lt;/td&gt;
-      &lt;td&gt;7&lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;
-&lt;/div&gt;
-
-&lt;p&gt;Opps！虽然第一列和第二列合并到一起了，但是并没有成功的解析成日期时间对象。因为这个格式真的没人看得懂是一个日期时间对象啊！！！&lt;/p&gt;
-
-&lt;p&gt;那就没有办法在加载CSV的时候就解析时间序列的方法了吗？&lt;/p&gt;
-
-&lt;p&gt;答案是有的。&lt;code&gt;read_csv&lt;/code&gt; 还有一个参数：&lt;code&gt;date_parser&lt;/code&gt;，我们可以自己写一个日期时间对象解析函数。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from datetime import datetime
-
-def my_date_parser(dt, hour):
-    return datetime(int(dt[0:4]), int(dt[4:6]), int(dt[6:8]), int(hour))
-
-tmp_csv_file.seek(0)
-df = pd.read_csv(tmp_csv_file, date_parser=my_date_parser,
-                 parse_dates={&#39;time&#39;: [0, 1], &#39;time2&#39;: [&#39;date2&#39;, &#39;hour2&#39;]},
-                 index_col=&#39;time&#39;)
-df
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;div&gt;
-&lt;table border=&#34;1&#34; class=&#34;dataframe&#34;&gt;
-  &lt;thead&gt;
-    &lt;tr style=&#34;text-align: right;&#34;&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;time2&lt;/th&gt;
-      &lt;th&gt;A1&lt;/th&gt;
-      &lt;th&gt;A2&lt;/th&gt;
-      &lt;th&gt;A3&lt;/th&gt;
-      &lt;th&gt;A4&lt;/th&gt;
-      &lt;th&gt;A5&lt;/th&gt;
-      &lt;th&gt;A6&lt;/th&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;time&lt;/th&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;&lt;/th&gt;
-      &lt;th&gt;&lt;/th&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2015-01-02 01:00:00&lt;/th&gt;
-      &lt;td&gt;2016-01-02 02:00:00&lt;/td&gt;
-      &lt;td&gt;117&lt;/td&gt;
-      &lt;td&gt;85&lt;/td&gt;
-      &lt;td&gt;109&lt;/td&gt;
-      &lt;td&gt;132&lt;/td&gt;
-      &lt;td&gt;166&lt;/td&gt;
-      &lt;td&gt;113&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2015-01-02 02:00:00&lt;/th&gt;
-      &lt;td&gt;2016-01-02 03:00:00&lt;/td&gt;
-      &lt;td&gt;88&lt;/td&gt;
-      &lt;td&gt;34&lt;/td&gt;
-      &lt;td&gt;82&lt;/td&gt;
-      &lt;td&gt;100&lt;/td&gt;
-      &lt;td&gt;126&lt;/td&gt;
-      &lt;td&gt;85&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2015-01-02 03:00:00&lt;/th&gt;
-      &lt;td&gt;2016-01-02 04:00:00&lt;/td&gt;
-      &lt;td&gt;48&lt;/td&gt;
-      &lt;td&gt;54&lt;/td&gt;
-      &lt;td&gt;38&lt;/td&gt;
-      &lt;td&gt;50&lt;/td&gt;
-      &lt;td&gt;55&lt;/td&gt;
-      &lt;td&gt;46&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2015-01-02 04:00:00&lt;/th&gt;
-      &lt;td&gt;2016-01-02 05:00:00&lt;/td&gt;
-      &lt;td&gt;141&lt;/td&gt;
-      &lt;td&gt;120&lt;/td&gt;
-      &lt;td&gt;154&lt;/td&gt;
-      &lt;td&gt;148&lt;/td&gt;
-      &lt;td&gt;175&lt;/td&gt;
-      &lt;td&gt;114&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2015-01-02 05:00:00&lt;/th&gt;
-      &lt;td&gt;2016-01-02 06:00:00&lt;/td&gt;
-      &lt;td&gt;91&lt;/td&gt;
-      &lt;td&gt;64&lt;/td&gt;
-      &lt;td&gt;74&lt;/td&gt;
-      &lt;td&gt;71&lt;/td&gt;
-      &lt;td&gt;84&lt;/td&gt;
-      &lt;td&gt;70&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;th&gt;2015-01-02 06:00:00&lt;/th&gt;
-      &lt;td&gt;2016-01-02 07:00:00&lt;/td&gt;
-      &lt;td&gt;45&lt;/td&gt;
-      &lt;td&gt;10&lt;/td&gt;
-      &lt;td&gt;46&lt;/td&gt;
-      &lt;td&gt;20&lt;/td&gt;
-      &lt;td&gt;68&lt;/td&gt;
-      &lt;td&gt;44&lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;
-&lt;/div&gt;
-
-&lt;p&gt;Bingo！是不是搞定了。这样加载并解析时间序列的效率也比加载后使用循环或列表解析处理的效率高的多了。&lt;/p&gt;
-
-&lt;p&gt;上面这段示例代码中，还演示了解析多列时间序列，可以按照列的索引指定要解析的列，也可以按照列名来制定要解析的列，另外，还演示了使用 &lt;code&gt;index_col&lt;/code&gt; 参数指定 DataFrame 索引的用法。&lt;/p&gt;
-
-&lt;h2 id=&#34;保存csv数据&#34;&gt;保存CSV数据&lt;/h2&gt;
-
-&lt;p&gt;除了加载CSV数据很方便之外，Pandas 的 DataFrame 类一个很方便的 &lt;code&gt;to_csv&lt;/code&gt; 方法，可以把数据保存到CSV文件中。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;pd.DataFrame.to_csv(self, path_or_buf=None, sep=&#39;,&#39;, na_rep=&#39;&#39;,
-    float_format=None, columns=None, header=True, index=True, index_label=None,
-    mode=&#39;w&#39;, encoding=None, compression=None, quoting=None, quotechar=&#39;&amp;quot;&#39;, 
-    line_terminator=&#39;\n&#39;, chunksize=None, tupleize_cols=False, date_format=None,
-    doublequote=True, escapechar=None, decimal=&#39;.&#39;, **kwds)
-    
-unbound pandas.core.frame.DataFrame method:
-    Write DataFrame to a comma-separated values (csv) file
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;嗯，默认输出就是标准的逗号分割的CSV文件，跟 &lt;code&gt;read_csv&lt;/code&gt; 函数一样，这个函数同样有很多可选参数控制输出。&lt;/p&gt;
-
-&lt;p&gt;除了输出到CSV外，DataFrame 还有很多输出到其他格式的方法：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;[meth for meth in dir(pd.DataFrame) if meth.startswith(&#39;to_&#39;)]
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;pre&gt;&lt;code&gt;[&#39;to_clipboard&#39;,
- &#39;to_csv&#39;,
- &#39;to_dense&#39;,
- &#39;to_dict&#39;,
- &#39;to_excel&#39;,
- &#39;to_gbq&#39;,
- &#39;to_hdf&#39;,
- &#39;to_html&#39;,
- &#39;to_json&#39;,
- &#39;to_latex&#39;,
- &#39;to_msgpack&#39;,
- &#39;to_panel&#39;,
- &#39;to_period&#39;,
- &#39;to_pickle&#39;,
- &#39;to_records&#39;,
- &#39;to_sparse&#39;,
- &#39;to_sql&#39;,
- &#39;to_stata&#39;,
- &#39;to_string&#39;,
- &#39;to_timestamp&#39;,
- &#39;to_wide&#39;,
- &#39;to_xarray&#39;]
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;路漫漫其修远兮～～我将慢慢去求索～～&lt;/p&gt;
 </description>
     </item>
     
