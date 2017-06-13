@@ -9,6 +9,748 @@
     <atom:link href="http://hshsh.me/tags/python/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>Django Admin 定制开发技巧</title>
+      <link>http://hshsh.me/post/2017-06-13-django-admin-ticks/</link>
+      <pubDate>Tue, 13 Jun 2017 23:00:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2017-06-13-django-admin-ticks/</guid>
+      <description>
+
+&lt;h2 id=&#34;过滤器-filters&#34;&gt;过滤器（Filters）&lt;/h2&gt;
+
+&lt;h3 id=&#34;下拉列表式过滤器&#34;&gt;下拉列表式过滤器&lt;/h3&gt;
+
+&lt;p&gt;模版文件：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;{% load i18n %}
+&amp;lt;script type=&amp;quot;text/javascript&amp;quot;&amp;gt;var go_from_select = function(opt) { window.location = window.location.pathname + opt };&amp;lt;/script&amp;gt;
+&amp;lt;h3&amp;gt;{% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}&amp;lt;/h3&amp;gt;
+&amp;lt;ul class=&amp;quot;admin-filter-{{ title|cut:&#39; &#39; }}&amp;quot;&amp;gt;
+{% if choices|slice:&amp;quot;4:&amp;quot; %}
+    &amp;lt;li&amp;gt;
+    &amp;lt;select style=&amp;quot;width: 95%;&amp;quot;
+        onchange=&amp;quot;go_from_select(this.options[this.selectedIndex].value)&amp;quot;&amp;gt;
+    {% for choice in choices %}
+        &amp;lt;option{% if choice.selected %} selected=&amp;quot;selected&amp;quot;{% endif %}
+         value=&amp;quot;{{ choice.query_string|iriencode }}&amp;quot;&amp;gt;{{ choice.display }}&amp;lt;/option&amp;gt;
+    {% endfor %}
+    &amp;lt;/select&amp;gt;
+    &amp;lt;/li&amp;gt;
+{% else %}
+    {% for choice in choices %}
+        &amp;lt;li{% if choice.selected %} class=&amp;quot;selected&amp;quot;{% endif %}&amp;gt;
+        &amp;lt;a href=&amp;quot;{{ choice.query_string|iriencode }}&amp;quot;&amp;gt;{{ choice.display }}&amp;lt;/a&amp;gt;&amp;lt;/li&amp;gt;
+    {% endfor %}
+{% endif %}
+&amp;lt;/ul&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Admin代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib.admin.filters import (
+    AllValuesFieldListFilter, RelatedFieldListFilter, ChoicesFieldListFilter)
+
+
+class DropdownFilter(AllValuesFieldListFilter):
+    template = &#39;app/admin/dropdown_filter.html&#39;
+    
+
+class RelatedDropdownFilter(RelatedFieldListFilter):
+    template = &#39;app/admin/dropdown_filter.html&#39;
+
+
+class ChoicesDropdownFilter(ChoicesFieldListFilter):
+    template = &#39;app/admin/dropdown_filter.html&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;三级分类级联过滤器&#34;&gt;三级分类级联过滤器&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.contrib import admin
+
+
+class Category(models.Model):
+    code = models.CharField(verbose_name=&#39;分类代码&#39;, max_length=6)
+    name = models.CharField(verbose_name=&#39;分类名&#39;, max_length=255)
+    level = models.SmallIntegerField(verbose_name=&#39;级别&#39;)
+    lv1_code = models.CharField(verbose_name=&#39;一级代码&#39;, max_length=2, default=&#39;&#39;, blank=True)
+    lv1_name = models.CharField(verbose_name=&#39;一级分类&#39;, max_length=255, default=&#39;&#39;, blank=True)
+    lv2_code = models.CharField(verbose_name=&#39;二级代码&#39;, max_length=4, default=&#39;&#39;, blank=True)
+    lv2_name = models.CharField(verbose_name=&#39;二级分类&#39;, max_length=255, default=&#39;&#39;, blank=True)
+
+
+class Item(models.Model):
+    name = models.CharField(verbose_name=&#39;商品名&#39;, max_length=255)
+    category = models.ForeignKey(Category, verbose_name=&#39;商品分类&#39;, null=True, blank=True)
+    cover_img = models.CharField(verbose_name=&#39;封面图片&#39;, max_length=255, null=True, blank=True)
+
+
+class CategoryLv1Filter(admin.SimpleListFilter):
+    title = &#39;一级分类&#39;
+    parameter_name = &#39;cat_lv1_code__exact&#39;
+    template = &#39;app/admin/dropdown_filter.html&#39;
+
+    def lookups(self, request, model_admin):
+        cat_lv1 = Category.objects.filter(level=1)
+        return [
+            (cat.code, cat.name)
+            for cat in cat_lv1
+        ]
+
+    def queryset(self, request, queryset):
+        cat_lv1 = self.value()
+        if cat_lv1:
+            queryset = queryset.filter(category__lv1_code=cat_lv1)
+        return queryset
+
+
+class CategoryLv2Filter(admin.SimpleListFilter):
+    title = &#39;二级分类&#39;
+    parameter_name = &#39;cat_lv2_code__exact&#39;
+    template = &#39;app/admin/dropdown_filter.html&#39;
+
+    def lookups(self, request, model_admin):
+        cat_lv1 = request.GET.get(&#39;cat_lv1_code__exact&#39;)
+        if cat_lv1:
+            cat_lv2 = Category.objects.filter(level=2, lv1_code=cat_lv1)
+        else:
+            cat_lv2 = []
+        return [
+            (cat.code, cat.name)
+            for cat in cat_lv2
+        ]
+
+    def queryset(self, request, queryset):
+        cat_lv2 = self.value()
+        if cat_lv2:
+            queryset = queryset.filter(category__lv2_code=cat_lv2)
+        return queryset
+
+
+class CategoryLv3Filter(admin.SimpleListFilter):
+    title = &#39;三级分类&#39;
+    parameter_name = &#39;cat_lv3_code__exact&#39;
+    template = &#39;app/admin/dropdown_filter.html&#39;
+
+    def lookups(self, request, model_admin):
+        cat_lv1 = request.GET.get(&#39;cat_lv1_code__exact&#39;)
+        cat_lv2 = request.GET.get(&#39;cat_lv2_code__exact&#39;)
+        if cat_lv1 and cat_lv2:
+            cat_lv3 = Category.objects.filter(level=3, lv2_code=cat_lv2)
+        else:
+            cat_lv3 = []
+        return [
+            (cat.code, cat.name)
+            for cat in cat_lv3
+        ]
+
+    def queryset(self, request, queryset):
+        cat_lv3 = self.value()
+        if cat_lv3:
+            queryset = queryset.filter(category__code=cat_lv3)
+        return queryset
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    list_filter = [CategoryLv1Filter, CategoryLv2Filter, CategoryLv3Filter]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;对象表单-changelist&#34;&gt;对象表单（ChangeList）&lt;/h2&gt;
+
+&lt;h3 id=&#34;列表中显示图片-链接&#34;&gt;列表中显示图片、链接&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import admin
+
+_default_image = &#39;/static/images/common/Bmr_160.png&#39;
+
+
+def cover_img_html(obj):
+    img_url = obj.cover_img or _default_image
+    return &#39;&amp;lt;img src=&amp;quot;{}&amp;quot; style=&amp;quot;width:100px;height:100px;&amp;quot; /&amp;gt;&#39;.format(img_url)
+cover_img_html.allow_tags = True
+cover_img_html.short_description = &#39;封面图片&#39;
+
+
+class ItemAdmin(admin.ModelAdmin):
+    list_display = [cover_img_html, &#39;category_link&#39;]
+    
+    def category_link(self, obj):
+        if not obj.category:
+            return &#39;--&#39;
+        return (&#39;&amp;lt;a href=&amp;quot;/admin/app/category/{}&amp;quot; target=&amp;quot;_blank&amp;quot;&amp;gt;{}&amp;lt;/a&amp;gt;&#39;
+                .format(obj.category.id, obj.category.name))
+    category_link.allow_tags = True
+    category_link.short_description = &#39;商品分类&#39;
+    category_link.admin_order_field = &#39;category_id&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;减小外键关联下拉列表选项数量&#34;&gt;减小外键关联下拉列表选项数量&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.forms import ModelForm
+from django.contrib import admin
+
+
+class Category(models.Model):
+    code = models.CharField(verbose_name=&#39;分类代码&#39;, max_length=6)
+    name = models.CharField(verbose_name=&#39;分类名&#39;, max_length=255)
+    level = models.SmallIntegerField(verbose_name=&#39;级别&#39;)
+    lv1_code = models.CharField(verbose_name=&#39;一级代码&#39;, max_length=2, default=&#39;&#39;, blank=True)
+    lv1_name = models.CharField(verbose_name=&#39;一级分类&#39;, max_length=255, default=&#39;&#39;, blank=True)
+    lv2_code = models.CharField(verbose_name=&#39;二级代码&#39;, max_length=4, default=&#39;&#39;, blank=True)
+    lv2_name = models.CharField(verbose_name=&#39;二级分类&#39;, max_length=255, default=&#39;&#39;, blank=True)
+    
+    
+class Vendor(models.Model):
+    brand = models.CharField(verbose_name=&#39;品牌&#39;, max_length=255)
+    city = models.CharField(verbose_name=&#39;城市&#39;, max_length=255)
+    address = models.CharField(verbose_name=&#39;地址&#39;, max_length=255)
+
+
+class Item(models.Model):
+    name = models.CharField(verbose_name=&#39;商品名&#39;, max_length=255)
+    brand = models.CharField(verbose_name=&#39;品牌&#39;, max_length=255)
+    vendor = models.ForeignKey(Vendor, verbose_name=&#39;生产厂家&#39;, null=True, blank=True)
+    category = models.ForeignKey(Category, verbose_name=&#39;商品分类&#39;, null=True, blank=True)
+    cover_img = models.CharField(verbose_name=&#39;封面图片&#39;, max_length=255, null=True, blank=True)
+
+
+class ItemModelForm(ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super(ItemModelForm, self).__init__(*args, **kwargs)
+        if self.instance:
+            inst_brand = self.instance.brand
+            self.fields[&#39;vendor&#39;].queryset = Vendor.objects.filter(brand=inst_brand)
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    form = ItemModelForm
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;批量操作-actions&#34;&gt;批量操作（Actions）&lt;/h2&gt;
+
+&lt;h3 id=&#34;禁用批量删除动作&#34;&gt;禁用批量删除动作&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import admin
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+
+    def get_actions(self, request):
+        actions = super(ItemAdmin, self).get_actions(request)
+        if &#39;delete_selected&#39; in actions:
+            del actions[&#39;delete_selected&#39;]
+        return actions
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;批量执行动作&#34;&gt;批量执行动作&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import messages, admin
+
+
+def batch_remove_category(model_admin, request, queryset):
+    # batch at database level
+    queryset.update(category_id=None)
+
+    # or one by at orm level
+    for obj in queryset:
+        obj.category = None
+        obj.save()
+
+    # messages can be send to the admin page
+    messages.success(request, &#39;操作成功！&#39;)
+batch_remove_category.short_description = &#39;批量删除分类&#39;
+
+    
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    actions = [batch_remove_category, ]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;需要参数的批量执行动作&#34;&gt;需要参数的批量执行动作&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.forms import CharField
+from django.contrib import admin, messages
+from django.contrib.admin import helpers, actions
+
+
+class ChangeBrandActionForm(helpers.ActionForm):
+    brand = CharField(max_length=255, required=False)
+
+
+def batch_change_brand(model_admin, request, queryset):
+    brand = request.POST.get(&#39;brand&#39;)
+    if not brand:
+        messages.error(request, &#39;请填写非空的品牌名称！&#39;)
+    queryset.update(brand=brand)
+    messages.success(request, &#39;修改成功！&#39;)
+batch_change_brand.short_description = &#39;批量修改品牌&#39;
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    actions = [batch_change_brand, ]
+    action_form = ChangeBrandActionForm
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;动态创建批量动作&#34;&gt;动态创建批量动作&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.contrib import admin, messages
+
+
+class ItemABCType(object):
+    A = &#39;A&#39;
+    B = &#39;B&#39;
+    C = &#39;C&#39;
+    CHOICES = [
+        (A, &#39;A类商品&#39;),
+        (B, &#39;B类商品&#39;),
+        (C, &#39;C类商品&#39;)
+    ]
+
+
+class Item(models.Model):
+    abc_type = models.CharField(
+        verbose_name=&#39;商品评级&#39;, max_length=1,
+        choices=ItemABCType.CHOICES, null=True, blank=True)
+
+
+def _make_mark_action(typ, name):
+    def mark_action_func(model_admin, request, queryset):
+        queryset.update(type=typ)
+        messages.success(request, &#39;操作成功！&#39;)
+
+    action_name = &#39;mark_action_func_{}&#39;.format(typ)
+    mark_action_func.func_name = action_name
+    mark_action_func.short_description = &#39;商品评级：{}&#39;.format(name)
+    return mark_action_func
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    actions = [_make_mark_action(typ, name) for typ, name in ItemABCType.CHOICES]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;对所有行执行指定操作&#34;&gt;对所有行执行指定操作&lt;/h3&gt;
+
+&lt;p&gt;其他适用场景：批量／全量下载文件，跨库同步。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.contrib import admin, messages
+
+
+class Category(models.Model):
+    pinyin = models.TextField(verbose_name=&#39;拼音&#39;, default=&#39;&#39;, blank=True)
+
+    def update_pinyin(self):
+        pinyin = &#39;&#39;
+        self.pinyin = pinyin
+        self.save()
+
+
+def batch_update_pinyin(model_admin, request, queryset):
+    count = queryset.count()
+    for cat in queryset:
+        cat.update_pinyin()
+    messages.success(request, &#39;成功更新%d条拼音！&#39; % count)
+batch_update_pinyin.short_description = &#39;批量更新分类拼音&#39;
+
+
+class CategoryAdmin(admin.ModelAdmin):
+    # ...
+    actions = [batch_update_pinyin, ]
+    
+    def changelist_view(self, request, extra_context=None):
+        &amp;quot;&amp;quot;&amp;quot;
+        Override to allow action on all records without selection.
+        &amp;quot;&amp;quot;&amp;quot;
+        if (request.POST.get(&#39;action&#39;) == &#39;batch_update_pinyin&#39; and
+                not request.POST.getlist(admin.ACTION_CHECKBOX_NAME)):
+            post = request.POST.copy()
+            for cat in Category.objects.all():
+                post.update({admin.ACTION_CHECKBOX_NAME: str(cat.id)})
+            request._set_post(post)
+        return super(CategoryAdmin, self).changelist_view(request, extra_context)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;页面交互&#34;&gt;页面交互&lt;/h2&gt;
+
+&lt;h3 id=&#34;对象编辑页面添加特殊字段&#34;&gt;对象编辑页面添加特殊字段&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.forms import ModelForm, CharField
+from django.contrib import admin
+
+
+class ItemAdminForm(ModelForm):
+
+    upload_img_url = CharField(max_length=255, required=False)
+
+    def save(self, commit=True):
+        upload_img_url = self.cleaned_data.get(&#39;upload_img_url&#39;)
+        if upload_img_url:
+            self.upload_image(upload_img_url)
+        return super(ItemAdminForm, self).save(commit)
+
+    def upload_image(self, image_url):
+        pass
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    form = ItemAdminForm
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;用js定制复杂交互功能&#34;&gt;用JS定制复杂交互功能&lt;/h3&gt;
+
+&lt;p&gt;模版文件：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;{% extends &amp;quot;admin/change_list.html&amp;quot; %}
+
+{% block extrahead %}
+{{ block.super }}
+&amp;lt;link href=&amp;quot;//cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.css&amp;quot; rel=&amp;quot;stylesheet&amp;quot;&amp;gt;
+&amp;lt;script src=&amp;quot;//cdn.bootcss.com/jquery/3.1.0/jquery.min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+&amp;lt;script src=&amp;quot;//cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+&amp;lt;script src=&amp;quot;//cdn.bootcss.com/lodash.js/4.17.4/lodash.min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+&amp;lt;script&amp;gt;
+$(function () {
+  var extraStyles = &#39; \
+        &amp;lt;style type=&amp;quot;text/css&amp;quot;&amp;gt; \
+        /* .actions {position: fixed;} */ \
+        .field-name input {width: 10em;} \
+        .field-brand input, .field-spec input, .field-price input {width: 4em;} \
+        input[type=checkbox] {transform: scale(1.4);} \
+        .hover-image { \
+            display: none; padding: 30px; \
+            position: fixed; top: 50%; left: 50%; \
+            transform: translate(-50%, -50%); z-index: 1; \
+            width: 400px; height: 400px; \
+            border: 1px solid #cecece; background: #fff; \
+        } \
+        &amp;lt;/style&amp;gt;&#39;
+  $(extraStyles).appendTo($(&#39;head&#39;))
+})
+
+window.onload = function () {
+  var categoryHTML = &#39; \
+        &amp;lt;div class=&amp;quot;wrap&amp;quot;&amp;gt; \
+        &amp;lt;input name=&amp;quot;action_category&amp;quot; type=&amp;quot;text&amp;quot; class=&amp;quot;search&amp;quot;&amp;gt; \
+        &amp;lt;div class=&amp;quot;menu&amp;quot;&amp;gt;&amp;lt;/div&amp;gt; \
+        &amp;lt;/div&amp;gt;&#39;
+  $(&#39;.actions input[name=&amp;quot;action_category&amp;quot;]&#39;.replaceWith(categoryHTML))
+
+  var hoverImageHTML = &#39;&amp;lt;img src=&amp;quot;&amp;quot; class=&amp;quot;hover-image&amp;quot;/&amp;gt;&#39;
+  $(hoverImageHTML).appendTo($(&#39;body&#39;))
+
+  // show image when mouse move over image links
+  $(&#39;tbody&#39;).on({
+    mouseenter: function () {
+      var href = $(this).attr(&#39;href&#39;)
+      $(&#39;.hover-image&#39;).attr(&#39;src&#39;, href).show()
+      return false
+    },
+    mouseleave: function () {
+      $(&#39;.hover-image&#39;).hide()
+      return false
+    }
+  }, &#39;a.images&#39;)
+
+  // disable editing when item has already been verified
+  $(&#39;.link-actions.reset&#39;).each(function () {
+    var parent = $(this).parent().parent()
+    parent.find(&#39;input, select&#39;).attr(&#39;disabled&#39;, &#39;disabled&#39;).css(&#39;background&#39;, &#39;#efeeee&#39;)
+    parent.find(&#39;a.change-related, a.add-related&#39;).hide()
+  })
+
+  // the disabled lines should be enabled before saving request
+  // to avoid form validation errors
+  $(&#39;input[type=submit][value=Save]&#39;).on(&#39;click&#39;, function () {
+    $(&#39;tr input:not([type=&amp;quot;checkbox&amp;quot;]):disabled&#39;).removeAttr(&#39;disabled&#39;)
+  })
+
+  // ajax request for removing barcode/tmall_id/jd_id/yhd_id
+  $(&#39;td&#39;).on(&#39;click&#39;, &#39;.ui.mini.button.inline&#39;, function () {
+    var that = $(this)
+    // get desired parameters
+
+    $.ajax({
+      url: &#39;/api/path/to/remove/relation&#39;,
+      type: &#39;POST&#39;,
+      data: {
+        // parameters
+      },
+      success: function (status) {
+        console.log(status)
+      },
+      error: function (XMLHttpRequest, textStatus, errorThrown) {
+        console.log(XMLHttpRequest.responseText)
+      }
+    })
+  })
+
+  // ajax requests for item operation actions
+  $(&#39;.link-actions&#39;).click(function () {
+    var that = $(this)
+    // get desired parameters
+
+    $.ajax({
+      // pass
+    })
+  })
+
+  // searching for categories using ajax requests
+  $(&#39;input.search[name=&amp;quot;action_category&amp;quot;]&#39;).on(&#39;input&#39;, _.debounce(function () {
+    var keyword = $(this).val();
+    var regular = /^[0-9A-Za-z\u4e00-\u9fa5]{3,}$/
+    if (keyword === String(keyword.match(regular))) {
+      $.ajax({
+        url: &#39;/api/path/to/category/search?keyword=&#39; + keyword,
+        type: &#39;GET&#39;,
+        success: function (data) {
+          if (data.code === 0) {
+            $(&#39;.menu&#39;).children().remove()
+            for (var i = 0; i &amp;lt; data.results.length; i++) {
+              var item = &#39;&amp;lt;div class=&amp;quot;item&amp;quot; data-value=&#39; + data.results[i].code + &#39;&amp;gt;&#39;
+                + data.results[i].name + &#39;&amp;lt;/div&amp;gt;&#39;
+              $(&#39;.menu&#39;).append(item)
+            }
+            $(&#39;.menu&#39;).show()
+          } else {
+            alert(data)
+          }
+        },
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+          alert(XMLHttpRequest.responseText)
+        }
+      })
+    }
+  }, 800))
+
+  // category selection items click events
+  $(&#39;.menu&#39;).on(&#39;click&#39;, &#39;.item&#39;, function (e) {
+    e.stopPropagation()
+    $(&#39;input.search&#39;).val($(this).data(&#39;value&#39;))
+    $(&#39;.menu&#39;).hide()
+  })
+}
+&amp;lt;/script&amp;gt;
+{% endblock %}
+
+&amp;lt;!-- show pagination on both top and bottom --&amp;gt;
+{% block result_list %}
+    {% block pagination %} {{ block.super }} {% endblock %}
+    {{ block.super }}
+{% endblock %}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Admin代码：&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models
+from django.contrib import admin
+from django.contrib.postgres.fields import ArrayField
+
+
+class StdItemStatus(object):
+    NEW = &#39;new&#39;
+    PENDING_REVIEW = &#39;pending_review&#39;
+    HALF_REVIEW = &#39;half_review&#39;
+    HUMAN_VERIFIED = &#39;human_verified&#39;
+    AUTO_VERIFIED = &#39;auto_verified&#39;
+    DELETED = &#39;deleted&#39;
+    NA = &#39;na&#39;
+
+    CHOICES = [
+        (NEW, &#39;新增标品&#39;),
+        (PENDING_REVIEW, &#39;待审核&#39;),
+        (HALF_REVIEW, &#39;半审核&#39;),
+        (HUMAN_VERIFIED, &#39;已通过人工审核&#39;),
+        (AUTO_VERIFIED, &#39;已通过自动审核&#39;),
+        (DELETED, &#39;已删除&#39;),
+        (NA, &#39;不处理&#39;),
+    ]
+    
+
+
+class Item(models.Model):
+    # ...
+    barcodes = ArrayField(
+    models.TextField(), verbose_name=&#39;商品条码&#39;, null=True, blank=True)
+    status = models.CharField(
+        verbose_name=&#39;状态&#39;, max_length=20,
+        default=StdItemStatus.NEW, choices=StdItemStatus.CHOICES)
+
+    @property
+    def is_verified(self):
+        return self.status in (
+            StdItemStatus.HUMAN_VERIFIED, StdItemStatus.AUTO_VERIFIED,
+            StdItemStatus.DELETED, StdItemStatus.NA,
+        )
+
+
+def images_html(item_obj):
+    from os.path import basename
+    images = item_obj.images or []
+    html = &#39;&amp;lt;br&amp;gt;&#39;.join(map(
+        lambda url:
+            &#39;&amp;lt;a class=&amp;quot;images&amp;quot; href=&amp;quot;{url}&amp;quot; target=&amp;quot;_blank&amp;quot;&amp;gt;{name}&amp;lt;/a&amp;gt;&#39;
+            .format(url=url, name=basename(url)[:8]),
+        images
+    ))
+    return html or &#39;--&#39;
+
+
+def barcodes_html(item_obj):
+    barcodes = item_obj.barcodes or []
+    if item_obj.is_verified:
+        html = &#39;&amp;lt;br&amp;gt;&#39;.join(map(
+            lambda bc: &#39;&amp;lt;span&amp;gt;{}&amp;lt;/span&amp;gt;&#39;.format(bc),
+            barcodes
+        ))
+    else:
+        html = &#39;&amp;lt;br&amp;gt;&#39;.join(map(
+            lambda bc: &#39;&amp;lt;span&amp;gt;{}&amp;lt;/span&amp;gt;&amp;lt;span class=&amp;quot;mini ui button inline&amp;quot;&amp;gt;X&amp;lt;/span&amp;gt;&#39;,
+            barcodes
+        ))
+        html += &#39;&amp;lt;br&amp;gt;&amp;lt;span class=&amp;quot;tiny ui button&amp;quot;&amp;gt;添加&amp;lt;/span&amp;gt;&#39;
+    return html or &#39;--&#39;
+barcodes_html.allow_tags = True
+barcodes_html.short_description = &#39;商品条码&#39;
+
+
+def operation_links(item_obj):
+    if not item_obj.is_verified:
+        edit = &#39;&amp;lt;a href=&amp;quot;/admin/app/item/{id}&amp;quot; target=&amp;quot;_blank&amp;quot;&amp;gt;修改&amp;lt;/a&amp;gt;&#39;.format(id=item_obj.id)
+        verify = &#39;&amp;lt;a class=&amp;quot;link-actions verify&amp;quot; data-action=&amp;quot;verify&amp;quot; href=&amp;quot;javascript:&amp;quot;&amp;gt;通过&amp;lt;/a&amp;gt;&#39;
+        remove = &#39;&amp;lt;a class=&amp;quot;link-actions remove&amp;quot; data-action=&amp;quot;delete&amp;quot; href=&amp;quot;javascript:&amp;quot;&amp;gt;删除&amp;lt;/a&amp;gt;&#39;
+        return &#39;&amp;lt;br&amp;gt;&#39;.join([edit, verify, remove])
+    else:
+        reset = &#39;&amp;lt;a class=&amp;quot;link-actions reset&amp;quot; data-action=&amp;quot;reset&amp;quot; href=&amp;quot;javascript:&amp;quot;&amp;gt;重置状态&amp;lt;/a&amp;gt;&#39;
+        return reset
+operation_links.allow_tags = True
+operation_links.short_description = &#39;审核操作&#39;
+
+
+class ItemAdmin(admin.ModelAdmin):
+    # ...
+    list_display = [images_html, barcodes_html, operation_links, ]
+    list_display_links = None
+    list_per_page = 5
+
+    change_list_template = &#39;app/admin/item_change_list.html&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&#34;其他技巧&#34;&gt;其他技巧&lt;/h2&gt;
+
+&lt;h3 id=&#34;事务控制&#34;&gt;事务控制&lt;/h3&gt;
+
+&lt;p&gt;其他适用场景：订单相关操作，运营操作日志。&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.db import models, transaction
+from django.contrib.postgres.fields import ArrayField
+
+
+class Item(models.Model):
+    barcodes = ArrayField(
+        models.TextField(), verbose_name=&#39;国际条码&#39;, null=True, blank=True)
+    tmall_ids = ArrayField(
+        models.TextField(), verbose_name=&#39;天猫IDs&#39;, null=True, blank=True)
+    jd_ids = ArrayField(
+        models.TextField(), verbose_name=&#39;京东IDs&#39;, null=True, blank=True)
+    yhd_ids = ArrayField(
+        models.TextField(), verbose_name=&#39;一号店IDs&#39;, null=True, blank=True)
+
+    def fix_m2m_conflict(self, conflict_fields):
+        # fix conflicts between different items
+        # in case of un-fixable errors, raise exceptions
+        pass
+
+    def save_relations(self, related_fields):
+        # the related barcode, tmall/jd/yhd items should be saved
+        # together with the item
+        pass
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        # ...
+        conflict_fields = []
+        related_fields = []
+
+        try:
+            # all success or all fail
+            with transaction.atomic():
+                self.fix_m2m_conflict(conflict_fields)
+                self.save_relations(related_fields)
+                super(Item, self).save(force_insert, force_update, using, update_fields)
+        except Exception as err:
+            # NOTE: exceptions should be handled outside the transaction context
+            pass
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;自动注册admin类&#34;&gt;自动注册Admin类&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import admin
+
+from .models import *
+
+# ModelAdmin classes definitions
+
+# register all admin models which end with &amp;quot;Admin&amp;quot;
+_locals = locals()
+_obj_name = _obj = _m = None
+for _obj_name, _obj in _locals.items():
+    if (_obj_name.endswith(&#39;Admin&#39;) and
+            issubclass(_obj, admin.ModelAdmin) and
+            _obj is not admin.ModelAdmin):
+        _m = _locals[_obj_name.replace(&#39;Admin&#39;, &#39;&#39;)]
+        admin.site.register(_m, _obj)
+del _locals, _obj_name, _obj, _m
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&#34;在后台界面查看操作日志&#34;&gt;在后台界面查看操作日志&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-python&#34;&gt;from django.contrib import admin
+from django.contrib.admin.models import LogEntry
+
+
+class LogEntryAdmin(admin.ModelAdmin):
+    &amp;quot;&amp;quot;&amp;quot;
+    Admin of the history/log table for view only purpose.
+    &amp;quot;&amp;quot;&amp;quot;
+    list_display = [
+        &#39;action_time&#39;, &#39;user&#39;, &#39;content_type&#39;, &#39;object_id&#39;, &#39;object_repr&#39;,
+        &#39;action_flag&#39;, &#39;change_message&#39;]
+    readonly_fields = [
+        &#39;user&#39;, &#39;content_type&#39;, &#39;object_id&#39;, &#39;object_repr&#39;, &#39;action_flag&#39;,
+        &#39;change_message&#39;]
+    list_filter = [&#39;action_time&#39;, &#39;user&#39;, &#39;content_type&#39;]
+    ordering = [&#39;-action_time&#39;]
+    list_display_links = None
+    actions = None
+
+    # We don&#39;t want people changing this historical record
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def save_model(self, request, obj, form, change):
+        from django.core.exceptions import SuspiciousOperation
+        raise SuspiciousOperation(&#39;log entry should not be changed&#39;)
+
+
+admin.site.register(LogEntry, LogEntryAdmin)
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
       <title>Ubuntu14.04上DNS引发的血案</title>
       <link>http://hshsh.me/post/2016-08-09-ubuntu-14.04-dnsmasq/</link>
       <pubDate>Tue, 09 Aug 2016 11:03:30 +0800</pubDate>

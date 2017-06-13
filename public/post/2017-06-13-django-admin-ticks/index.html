@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+	<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn" lang="zh-cn">
 <head>
   <link href="http://gmpg.org/xfn/11" rel="profile">
@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
-  <title> hshsh&#39;s little site &middot; hshsh&#39;s little site </title>
+  <title> Django Admin 定制开发技巧 &middot; hshsh&#39;s little site </title>
 
   
   <link rel="stylesheet" href="http://hshsh.me/css/poole.css">
@@ -27,12 +27,11 @@
   <link rel="shortcut icon" href="/favicon.png">
 
   
-  <link href="http://hshsh.me/index.xml" rel="alternate" type="application/rss+xml" title="hshsh&#39;s little site" />
+  <link href="" rel="alternate" type="application/rss+xml" title="hshsh&#39;s little site" />
 </head>
 
-<body class=" ">
-
-<div class="sidebar">
+	<body class="">
+		<div class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
       <a href="http://hshsh.me/"><h1>hshsh&#39;s little site</h1></a>
@@ -52,20 +51,11 @@
 </div>
 
 
-<div class="content container">
-<div class="posts">
-
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2017-06-13-django-admin-ticks/">
-        Django Admin 定制开发技巧
-      </a>
-    </h1>
-
-    <span class="post-date">Tue, Jun 13, 2017</span>
-
-    
+		<div class="content container">
+			<div class="post">
+			 	<h1>Django Admin 定制开发技巧</h1>
+			  <span class="post-date">Tue, Jun 13, 2017</span>
+			      
 
 <h2 id="过滤器-filters">过滤器（Filters）</h2>
 
@@ -799,118 +789,10 @@ class LogEntryAdmin(admin.ModelAdmin):
 admin.site.register(LogEntry, LogEntryAdmin)
 </code></pre>
 
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2017-03-04-ikbc-keyboard-on-mac/">
-        MacBook Pro上完美使用IKBC C87机械键盘
-      </a>
-    </h1>
+			</div>
 
-    <span class="post-date">Sat, Mar 4, 2017</span>
+			
+		</div>
 
-    <p>最近也用上了MacBook Pro，除了吐槽一下这个Multi Touch Bar键盘敲起来没有一点手感，还有数字&rdquo;1&rdquo;左边那个丧心病狂的的&rdquo;Section（§）&rdquo;之外，其他方面用起来真心舒服。</p>
-
-<p>适应了几天Mac的键位后，琢磨着把自己的IKBC C87机械键盘接上来用，主要参考了下面的文章：</p>
-
-<ul>
-<li><a href="http://plus.zealer.com/post/56805.html">让机械键盘完美适配你的Mac！</a></li>
-<li><a href="https://damieng.com/blog/2015/04/24/make-home-end-keys-behave-like-windows-on-mac-os-x">Make Home &amp; End keys behave like Windows on Mac OS X</a></li>
-<li><a href="http://osxnotes.net/keybindings.html">DefaultKeyBinding.dict</a></li>
-</ul>
-
-<p>作为一枚死宅的程序猿，我的需求很简单：</p>
-
-<ol>
-<li>把数字&rdquo;1&rdquo;左边的Section键换回反引号键&rdquo;`~&ldquo;，把半残的左边Shift键右边的反引号键还原成Shift；</li>
-<li>把IKBC C87上的Control、Win、Alt键映射成Mac的Control、Option、Command键位顺序；</li>
-<li>把IKBC C87上的Home、End、PageUp、PageDown键功能都可以正常跳转</li>
-</ol>
-
-<p>嗯，就这样，通过一番研（sou）究（suo）之后，发现可以通过如下组合实现上面的功能：</p>
-
-<p>Karabiner Elements修改建伟映射、DefaultKeyBinding.dict修改组合键功能、Alfred控制快速切换Karabiner Elements的Profile。</p>
-
-<p>具体过程略过，简要记录一下主要配置。</p>
-
-<p>Karabiner Elements建立三个Profiles：</p>
-
-<ol>
-<li>&ldquo;none&rdquo;：原始键盘，不映射任何键位，这个主要是用作偶尔别人使用电脑不习惯改键或键位修改出现问题时，可以快速恢复；</li>
-<li>&ldquo;internal&rdquo;：这个用于映射内置键盘的&rdquo;§±&rdquo;和&rdquo;`~&ldquo;键；</li>
-<li>&ldquo;ikbc&rdquo;: 用于映射机械键盘上的Control、Win、Alt键的顺序；</li>
-</ol>
-
-<p>这三个映射使用<a href="http://www.packal.org/workflow/karabiner-elements-profile-switcher">Karabiner Elements Profile Switcher</a>这个Workflow可以快速切换。因为Karabiner Elements现在还不可以根据键盘关联自动调用对应的Profile。</p>
-
-<p>我给每个Profile都制定了一个快捷键（Alfred Trigger Hotkey）：</p>
-
-<ul>
-<li>Ctrl + Option + Command + K：切换到 &ldquo;none&rdquo; Profile；</li>
-<li>在内置键盘上使用 F12 切换到 &ldquo;internal&rdquo; Profile；</li>
-<li>机械键盘上的 PrtSrc 键被 Karabiner Elements 识别出来是F13，所以就用了这个 &ldquo;F13&rdquo; 切换到 &ldquo;ikbc&rdquo; Profile。</li>
-</ul>
-
-<p>我的编码习惯经常会用到Home、End、PageUp、PageDown这几个键进行快速跳转，接上机械键盘自然能把这些键配置起来是最好了。好在实现这些功能键不需要KE和Alfred的功能，直接使用系统配置就可以完成。</p>
-
-<p>把要绑定的键的配置写入到文件&rdquo;~/Library/KeyBindings/DefaultKeyBinding.dict&rdquo;就可以了。更多绑定和功能列表请参照资料自行配置。</p>
-
-<pre><code>➜  ~ cat ~/Library/KeyBindings/DefaultKeyBinding.dict
-{
-    &quot;\UF729&quot;  = moveToBeginningOfParagraph:;  // home
-    &quot;\UF72B&quot;  = moveToEndOfParagraph:;  // end
-    &quot;$\UF729&quot; = moveToBeginningOfParagraphAndModifySelection:;  // shift-home
-    &quot;$\UF72B&quot; = moveToEndOfParagraphAndModifySelection:;  // shift-end
-    &quot;^\UF729&quot; = moveToBeginningOfDocument:;  // ctrl-home
-    &quot;^\UF72B&quot; = moveToEndOfDocument:;  // ctrl-end
-    &quot;^$\UF729&quot; = moveToBeginningOfDocumentAndModifySelection:;  // ctrl-shift-home
-    &quot;^$\UF72B&quot; = moveToEndOfDocumentAndModifySelection:;  // ctrl-shift-end
-}
-</code></pre>
-
-<p>如此，又可以用我的键盘愉快的啪啪啪了，貌似我敲键盘的声音会比较大一些，对我就是故意的😄😄😄😄😄</p>
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2016-12-22-photoshop-cc-2017-extensions-fix/">
-        解决Photoshop CC 2017无法安装扩展插件的问题
-      </a>
-    </h1>
-
-    <span class="post-date">Thu, Dec 22, 2016</span>
-
-    <p>安装Photoshop CC 2017后，打开PNG文件，弹出“无法加载扩展，因为它未正确签署”的错误提示，解决方法如下：</p>
-
-<p>打开注册表编辑器，定位到路径“HKEY_CURRENT_USER/Software/Adobe/CSXS.7”，新建“字符串值”，名称为“PlayerDebugMode”，值为1。</p>
-
-<p>关闭注册表，收工。重新打开Photoshop，可以正常安装加载扩展了。</p>
-
-<p>或者可以保存以下内容为“ps2017_extensions_fix.reg”文件，并双击导入注册表：</p>
-
-<pre><code class="language-reg">Windows Registry Editor Version 5.00
-
-[HKEY_CURRENT_USER\SOFTWARE\Adobe\CSXS.7]
-&quot;PlayerDebugMode&quot;=&quot;1&quot;
-</code></pre>
-
-<p>下面参考资料文章中有动图指导，推荐拜读原文。</p>
-
-<p>参考资料：</p>
-
-<ul>
-<li><a href="http://www.zcool.com.cn/article/ZNDUwODY0.html">一招解决PSCC2017无法安装扩展插件(原创文章)</a></li>
-</ul>
-
-  </div>
-  
-</div>
-<div class="more-posts">
-  <h2><a href="/post/">&gt;&gt;&gt;&gt;</a></h2>
-</div>
-</div>
-
-</body>
+  </body>
 </html>
