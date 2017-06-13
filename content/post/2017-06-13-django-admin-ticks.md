@@ -8,10 +8,9 @@ title = "Django Admin 定制开发技巧"
 
 +++
 
-# Django Admin 定制开发技巧
+## 过滤器（Filters）
 
-
-## 下拉列表式过滤器
+### 下拉列表式过滤器
 
 模版文件：
 
@@ -39,6 +38,8 @@ title = "Django Admin 定制开发技巧"
 </ul>
 ```
 
+Admin代码：
+
 ```python
 from django.contrib.admin.filters import (
     AllValuesFieldListFilter, RelatedFieldListFilter, ChoicesFieldListFilter)
@@ -57,7 +58,7 @@ class ChoicesDropdownFilter(ChoicesFieldListFilter):
 ```
 
 
-## 三级分类级联过滤器
+### 三级分类级联过滤器
 
 ```python
 from django.db import models
@@ -152,7 +153,9 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 列表中显示图片、链接
+## 对象表单（ChangeList）
+
+### 列表中显示图片、链接
 
 ```python
 from django.contrib import admin
@@ -173,7 +176,7 @@ class ItemAdmin(admin.ModelAdmin):
     def category_link(self, obj):
         if not obj.category:
             return '--'
-        return ('<a href="/cma/app/category/{}" target="_blank">{}</a>'
+        return ('<a href="/admin/app/category/{}" target="_blank">{}</a>'
                 .format(obj.category.id, obj.category.name))
     category_link.allow_tags = True
     category_link.short_description = '商品分类'
@@ -181,7 +184,7 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 缩小外键关联下拉列表选项数量
+### 减小外键关联下拉列表选项数量
 
 ```python
 from django.db import models
@@ -228,7 +231,9 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 禁用批量删除动作
+## 批量操作（Actions）
+
+### 禁用批量删除动作
 
 ```python
 from django.contrib import admin
@@ -245,7 +250,7 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 批量执行动作
+### 批量执行动作
 
 ```python
 from django.contrib import messages, admin
@@ -271,7 +276,7 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 需要参数的批量执行动作
+### 需要参数的批量执行动作
 
 ```python
 from django.forms import CharField
@@ -299,7 +304,7 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 动态创建批量动作
+### 动态创建批量动作
 
 ```python
 from django.db import models
@@ -340,7 +345,7 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 对所有行执行指定操作
+### 对所有行执行指定操作
 
 其他适用场景：批量／全量下载文件，跨库同步。
 
@@ -384,7 +389,9 @@ class CategoryAdmin(admin.ModelAdmin):
 ```
 
 
-## 对象编辑页面添加特殊字段
+## 页面交互
+
+### 对象编辑页面添加特殊字段
 
 ```python
 from django.forms import ModelForm, CharField
@@ -411,7 +418,9 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 用JS定制复杂交互功能
+### 用JS定制复杂交互功能
+
+模版文件：
 
 ```html
 {% extends "admin/change_list.html" %}
@@ -484,7 +493,7 @@ window.onload = function () {
     // get desired parameters
 
     $.ajax({
-      url: '/api/path/to/resource',
+      url: '/api/path/to/remove/relation',
       type: 'POST',
       data: {
         // parameters
@@ -552,6 +561,8 @@ window.onload = function () {
     {{ block.super }}
 {% endblock %}
 ```
+
+Admin代码：
 
 ```python
 from django.db import models
@@ -628,7 +639,7 @@ barcodes_html.short_description = '商品条码'
 
 def operation_links(item_obj):
     if not item_obj.is_verified:
-        edit = '<a href="/cma/standard/item/{id}" target="_blank">修改</a>'.format(id=item_obj.id)
+        edit = '<a href="/admin/app/item/{id}" target="_blank">修改</a>'.format(id=item_obj.id)
         verify = '<a class="link-actions verify" data-action="verify" href="javascript:">通过</a>'
         remove = '<a class="link-actions remove" data-action="delete" href="javascript:">删除</a>'
         return '<br>'.join([edit, verify, remove])
@@ -649,7 +660,9 @@ class ItemAdmin(admin.ModelAdmin):
 ```
 
 
-## 事务控制
+## 其他技巧
+
+### 事务控制
 
 其他适用场景：订单相关操作，运营操作日志。
 
@@ -696,7 +709,7 @@ class Item(models.Model):
 ```
 
 
-## 自动注册Admin类
+### 自动注册Admin类
 
 ```python
 from django.contrib import admin
@@ -718,7 +731,7 @@ del _locals, _obj_name, _obj, _m
 ```
 
 
-## 在后台界面查看操作日志
+### 在后台界面查看操作日志
 
 ```python
 from django.contrib import admin
