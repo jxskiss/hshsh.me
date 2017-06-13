@@ -1,4 +1,8 @@
 #!/usr/bin/env python2
+"""
+Reference: Deployment via gh-pages branch
+    https://gohugo.io/tutorials/github-pages-blog/
+"""
 
 from fabric.api import *
 from fabric.context_managers import *
@@ -9,18 +13,6 @@ from datetime import date
 
 _root = dirname(abspath(__file__))
 _post = join(_root, 'content', 'post')
-
-
-def _commit(msg):
-    with settings(warn_only=True):
-        local('git add -A')
-        local('git commit -m "{}"'.format(msg))
-
-
-def _push():
-    local('git push origin master')
-    local('git subtree push --prefix=public '
-          'https://github.com/jxskiss/hshsh.me.git gh-pages')
 
 
 def nbconvert():
@@ -41,6 +33,13 @@ def nbconvert():
         print('nbconvert: {} new notebooks converted.'.format(count))
 
 
+def worktree():
+    with settings(warn_only=True):
+        local('rm -rf public')
+        local('git worktree prune')
+        local('git worktree add -B gh-pages public origin/gh-pages')
+
+
 def build(ipynb='convert'):
     if ipynb == 'convert':
         nbconvert()
@@ -48,9 +47,27 @@ def build(ipynb='convert'):
         local('hugo')
 
 
+def publish(msg=''):
+    if not msg:
+        msg = 'Rebuilding site {}'.format(date.today().isoformat())
+    with lcd('public'):
+        with settings(warn_only=True):
+            local('git add --all')
+            local('git commit -m "{}"'.format(msg))
+
+
+def push(branch=None):
+    if not branch:
+        branchs = ['master', 'gh-pages']
+    else:
+        branchs = [branch, ]
+    for branch in branchs:
+        local('git push origin {}'.format(branch))
+
+
 def deploy(type_='publish'):
-    msg = 'Rebuilding site {}'.format(date.today().isoformat())
+    msg = ''
     if not type_ == 'publish':
         msg = input("Commit message: ")
-    _commit(msg)
-    _push()
+    publish(msg)
+    push()
