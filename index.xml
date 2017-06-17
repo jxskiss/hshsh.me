@@ -166,6 +166,7 @@ class ItemAdmin(admin.ModelAdmin):
 _default_image = &#39;/static/images/common/Bmr_160.png&#39;
 
 
+# define as a standalone function
 def cover_img_html(obj):
     img_url = obj.cover_img or _default_image
     return &#39;&amp;lt;img src=&amp;quot;{}&amp;quot; style=&amp;quot;width:100px;height:100px;&amp;quot; /&amp;gt;&#39;.format(img_url)
@@ -175,7 +176,8 @@ cover_img_html.short_description = &#39;封面图片&#39;
 
 class ItemAdmin(admin.ModelAdmin):
     list_display = [cover_img_html, &#39;category_link&#39;]
-    
+
+    # define as a method
     def category_link(self, obj):
         if not obj.category:
             return &#39;--&#39;
@@ -257,10 +259,10 @@ def batch_remove_category(model_admin, request, queryset):
     # batch at database level
     queryset.update(category_id=None)
 
-    # or one by at orm level
-    for obj in queryset:
-        obj.category = None
-        obj.save()
+    # # or one by one at orm level
+    # for obj in queryset:
+    #     obj.category = None
+    #     obj.save()
 
     # messages can be send to the admin page
     messages.success(request, &#39;操作成功！&#39;)
@@ -287,6 +289,7 @@ def batch_change_brand(model_admin, request, queryset):
     brand = request.POST.get(&#39;brand&#39;)
     if not brand:
         messages.error(request, &#39;请填写非空的品牌名称！&#39;)
+        return
     queryset.update(brand=brand)
     messages.success(request, &#39;修改成功！&#39;)
 batch_change_brand.short_description = &#39;批量修改品牌&#39;
