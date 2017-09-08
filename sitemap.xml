@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  
-  <url>
-    <loc>http://hshsh.me/</loc>
-    <lastmod>2017-06-13T23:00:00+08:00</lastmod>
-  </url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
     <loc>http://hshsh.me/post/2017-06-13-django-admin-ticks/</loc>
@@ -114,6 +110,222 @@
   <url>
     <loc>http://hshsh.me/post/2014-01-13-make-beautiful-ebooks-with-pandoc/</loc>
     <lastmod>2014-01-13T10:38:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/alfred/</loc>
+    <lastmod>2017-03-04T14:50:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/anaconda/</loc>
+    <lastmod>2016-07-30T07:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/database/</loc>
+    <lastmod>2016-08-06T10:17:25+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/design-pattern/</loc>
+    <lastmod>2016-04-10T23:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/django/</loc>
+    <lastmod>2017-06-13T23:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/dnsmasq/</loc>
+    <lastmod>2016-08-09T11:03:30+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/ebooks/</loc>
+    <lastmod>2014-01-13T10:38:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/fedora/</loc>
+    <lastmod>2016-09-07T10:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/fonts/</loc>
+    <lastmod>2016-09-07T10:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/hugo/</loc>
+    <lastmod>2016-04-24T11:36:14+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/ikbc/</loc>
+    <lastmod>2017-03-04T14:50:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/karabiner/</loc>
+    <lastmod>2017-03-04T14:50:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/linux/</loc>
+    <lastmod>2016-09-07T10:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/macosx/</loc>
+    <lastmod>2017-03-04T14:50:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/mysql/</loc>
+    <lastmod>2016-04-27T11:42:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/ntp/</loc>
+    <lastmod>2016-07-30T07:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/pandas/</loc>
+    <lastmod>2016-04-13T18:02:04+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/pandoc/</loc>
+    <lastmod>2014-01-13T10:38:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/photoshop/</loc>
+    <lastmod>2016-12-22T23:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/postgresql/</loc>
+    <lastmod>2016-08-06T10:17:25+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/post/</loc>
+    <lastmod>2017-06-13T23:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/programming/</loc>
+    <lastmod>2017-06-13T23:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/pycharm/</loc>
+    <lastmod>2016-09-07T10:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/python/</loc>
+    <lastmod>2017-06-13T23:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/rabbitmq/</loc>
+    <lastmod>2016-04-24T22:48:11+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/service/</loc>
+    <lastmod>2016-08-06T10:17:25+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/shell/</loc>
+    <lastmod>2016-04-27T12:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/software/</loc>
+    <lastmod>2017-03-04T14:50:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/sqlalchemy/</loc>
+    <lastmod>2016-04-04T19:18:09+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/</loc>
+    <lastmod>2017-03-04T14:50:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/ticks/</loc>
+    <lastmod>2017-06-13T23:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/ubuntu/</loc>
+    <lastmod>2016-08-09T11:03:30+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/windows/</loc>
+    <lastmod>2016-12-22T23:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/xtrabackup/</loc>
+    <lastmod>2016-04-26T18:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/</loc>
+    <lastmod>2017-06-13T23:00:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/</loc>
+    <lastmod>2016-04-24T22:48:11+08:00</lastmod>
+    <priority>0</priority>
   </url>
   
 </urlset>

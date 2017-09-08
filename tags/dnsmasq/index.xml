@@ -7,7 +7,9 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <lastBuildDate>Tue, 09 Aug 2016 11:03:30 +0800</lastBuildDate>
-    <atom:link href="http://hshsh.me/tags/dnsmasq/index.xml" rel="self" type="application/rss+xml" />
+    
+	<atom:link href="http://hshsh.me/tags/dnsmasq/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>Ubuntu14.04上DNS引发的血案</title>
@@ -15,84 +17,27 @@
       <pubDate>Tue, 09 Aug 2016 11:03:30 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2016-08-09-ubuntu-14.04-dnsmasq/</guid>
-      <description>&lt;p&gt;作为技术备忘，为了纪念为此死去的千千万万脑细胞，先说问题：&lt;/p&gt;
-
-&lt;p&gt;公司搬家后，一台工作站上的爬虫程序突然莫名其妙的变慢，从一天20多万条数据萎缩到了14W-20W条不稳定，因为新办公室里所有部门共用一条网线，起初还以为是网络拥挤，属于正常情况，后来居然夸张的变成了每天3W条数据，经过跟踪发现这个爬虫全天候不分时间段的慢，这就很不对了。然后开始一系列的排查。&lt;/p&gt;
-
-&lt;p&gt;后来把爬虫里面用域名访问的代码改成使用IP地址访问，发现速度连接速度不慢，但是一使用域名就变龟速了，很明显域名解析出问题了，作为临时方案，我居然手写了一段IP地址缓存的代码，:(&amp;lt;&lt;/p&gt;
-
-&lt;p&gt;吐槽一下：Ubuntu系统配置DNS一点都不方便！！&lt;/p&gt;
-
-&lt;p&gt;发现工作站上的DNS服务器被配置成了8.8.8.8，然而这段时间Google的DNS抽风了，经常连接不上，所以解决办法就很简单了。&lt;/p&gt;
-
-&lt;p&gt;研究配置DNS的过程中，被灌输了一堆新名词：dnsmasq, resolv.conf, NetworkManager, resolvconf &amp;hellip;&lt;/p&gt;
-
-&lt;p&gt;没看全部的文档，根据查阅的部分资料，Ubuntu的DNS机制大概是这样的：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;NetworkManager管理DNS配置，图形界面“编辑连接”弹出来的就是这货，这里配置的DNS存储在&lt;code&gt;/run/resolvconf/interface/NetworkManager&lt;/code&gt;文件中。&lt;/li&gt;
-&lt;li&gt;系统范围DNS的基本配置在&lt;code&gt;/etc/resolvconf/resolv.conf.d/&lt;/code&gt;这个目录下面，这里有三个文件：&lt;code&gt;base&lt;/code&gt;中是基本配置，系统动态生成&lt;code&gt;resolv.conf&lt;/code&gt;文件时要包含的内容；&lt;code&gt;head&lt;/code&gt;也是要包含在&lt;code&gt;resolv.conf&lt;/code&gt;文件中的，里面主要包含一些说明，比如不要修改我会被覆盖之类的；&lt;code&gt;tail&lt;/code&gt;里是要追加到动态生成的&lt;code&gt;resolv.conf&lt;/code&gt;文件末尾的内容。&lt;/li&gt;
-&lt;li&gt;从Ubuntu 12.04开始，系统默认都会安装一个阉割版的dnsmasq服务（dnsmasq-base包，不是dnsmasq包），主要是为了解决DNS和VPN之间的什么什么暧昧问题的，监听在127.0.1.1:53地址上，系统DNS请求都会发到这个监听地址上。&lt;/li&gt;
-&lt;li&gt;系统启动或者执行&lt;code&gt;resolvconf -u&lt;/code&gt;命令的时候，会根据配置动态生成DNS配置文件&lt;code&gt;/ete/resolv.conf&lt;/code&gt;。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;这个理解必然是不全面的，甚至有些完全就是错的，留待下次再搞DNS问题的时候研究吧。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;相关的解决方法&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;安装完整功能的Dnsmasq：&lt;code&gt;sudo apt-get install dnsmasq&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;配置Dnsmasq上游DNS服务器和本地监听地址，修改&lt;code&gt;/etc/dnsmasq.conf&lt;/code&gt;文件：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;listen-address=127.0.0.1,127.0.1.1
-resolv-file=/etc/resolv.dnsmasq
-conf-dir=/etc/dnsmasq.d
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;code&gt;/etc/resolv.dnsmasq&lt;/code&gt;文件里面写上游DNS服务器地址：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;nameserver 114.114.114.114
-nameserver 223.5.5.5
-nameserver 114.114.115.115
-nameserver 223.6.6.6
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;其他dnsmasq配置自由发挥就好啦～&lt;/p&gt;
-
-&lt;p&gt;修改系统DNS解析配置&lt;code&gt;/etc/resolvconf/resolv.conf.d/base&lt;/code&gt;：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;nameserver 127.0.0.1
-nameserver 114.114.114.114
-nameserver 223.5.5.5
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后启动dnsmasq服务：&lt;code&gt;sudo service dnsmasq restart&lt;/code&gt;，更新DNS动态配置：&lt;code&gt;sudo resolvconf -u&lt;/code&gt;。&lt;/p&gt;
-
-&lt;p&gt;以上步骤&lt;strong&gt;可能&lt;/strong&gt;就解决问题了，也可能还会有问题，也可能会引入新的问题，比如参考资料4中提到的系统启动时候服务启动顺序的问题～～&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;Dnsmasq扩展阅读&lt;/strong&gt;：&lt;/p&gt;
-
-&lt;p&gt;Dnsmasq提供DNS缓存和DHCP服务功能。作为域名解析服务器(DNS)，dnsmasq可以通过缓存DNS请求来提高对访问过的网址的连接速度。作为DHCP服务器，dnsmasq可以用于为局域网电脑分配内网ip地址和提供路由。DNS和DHCP两个功能可以同时或分别单独实现。dnsmasq轻量且易配置，适用于个人用户或少于50台主机的网络。此外它还自带了一个PXE服务器。&lt;a href=&#34;https://wiki.archlinux.org/index.php/Dnsmasq&#34;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;不使用Dnsmasq直接设置系统的DNS服务器&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;修改&lt;code&gt;/etc/resolvconf/resolv.conf.d/base&lt;/code&gt;文件中DNS配置：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;nameserver 114.114.114.114
-nameserver 223.5.5.5
-nameserver 114.114.115.115
-nameserver 223.6.6.6
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;strong&gt;参考资料&lt;/strong&gt;：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;a href=&#34;http://wiki.ubuntu.org.cn/%E4%BD%BF%E7%94%A8%E6%9C%AC%E5%9C%B0DNS%E5%8A%A0%E9%80%9F%E7%BD%91%E7%BB%9C%E8%AE%BF%E9%97%AE&#34;&gt;使用本地DNS加速网络访问&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://unix.stackexchange.com/questions/128220/how-do-i-set-my-dns-when-resolv-conf-is-being-overwritten&#34;&gt;How do I set my DNS when resolv.conf is being overwritten?&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://superuser.com/questions/681993/using-dnsmasq-with-networkmanager&#34;&gt;Using dnsmasq with NetworkManager&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://gist.github.com/magnetikonline/6236150&#34;&gt;Using Dnsmasq with Ubuntu for VM web application testing&lt;/a&gt;&lt;/li&gt;
-&lt;/ol&gt;
-</description>
+      <description>作为技术备忘，为了纪念为此死去的千千万万脑细胞，先说问题：
+公司搬家后，一台工作站上的爬虫程序突然莫名其妙的变慢，从一天20多万条数据萎缩到了14W-20W条不稳定，因为新办公室里所有部门共用一条网线，起初还以为是网络拥挤，属于正常情况，后来居然夸张的变成了每天3W条数据，经过跟踪发现这个爬虫全天候不分时间段的慢，这就很不对了。然后开始一系列的排查。
+后来把爬虫里面用域名访问的代码改成使用IP地址访问，发现速度连接速度不慢，但是一使用域名就变龟速了，很明显域名解析出问题了，作为临时方案，我居然手写了一段IP地址缓存的代码，:(&amp;lt;
+吐槽一下：Ubuntu系统配置DNS一点都不方便！！
+发现工作站上的DNS服务器被配置成了8.8.8.8，然而这段时间Google的DNS抽风了，经常连接不上，所以解决办法就很简单了。
+研究配置DNS的过程中，被灌输了一堆新名词：dnsmasq, resolv.conf, NetworkManager, resolvconf &amp;hellip;
+没看全部的文档，根据查阅的部分资料，Ubuntu的DNS机制大概是这样的：
+ NetworkManager管理DNS配置，图形界面“编辑连接”弹出来的就是这货，这里配置的DNS存储在/run/resolvconf/interface/NetworkManager文件中。 系统范围DNS的基本配置在/etc/resolvconf/resolv.conf.d/这个目录下面，这里有三个文件：base中是基本配置，系统动态生成resolv.conf文件时要包含的内容；head也是要包含在resolv.conf文件中的，里面主要包含一些说明，比如不要修改我会被覆盖之类的；tail里是要追加到动态生成的resolv.conf文件末尾的内容。 从Ubuntu 12.04开始，系统默认都会安装一个阉割版的dnsmasq服务（dnsmasq-base包，不是dnsmasq包），主要是为了解决DNS和VPN之间的什么什么暧昧问题的，监听在127.0.1.1:53地址上，系统DNS请求都会发到这个监听地址上。 系统启动或者执行resolvconf -u命令的时候，会根据配置动态生成DNS配置文件/ete/resolv.conf。  这个理解必然是不全面的，甚至有些完全就是错的，留待下次再搞DNS问题的时候研究吧。
+相关的解决方法
+安装完整功能的Dnsmasq：sudo apt-get install dnsmasq
+配置Dnsmasq上游DNS服务器和本地监听地址，修改/etc/dnsmasq.conf文件：
+listen-address=127.0.0.1,127.0.1.1 resolv-file=/etc/resolv.dnsmasq conf-dir=/etc/dnsmasq.d  /etc/resolv.dnsmasq文件里面写上游DNS服务器地址：
+nameserver 114.114.114.114 nameserver 223.5.5.5 nameserver 114.114.115.115 nameserver 223.6.6.6  其他dnsmasq配置自由发挥就好啦～
+修改系统DNS解析配置/etc/resolvconf/resolv.conf.d/base：
+nameserver 127.0.0.1 nameserver 114.114.114.114 nameserver 223.5.5.5  然后启动dnsmasq服务：sudo service dnsmasq restart，更新DNS动态配置：sudo resolvconf -u。
+以上步骤可能就解决问题了，也可能还会有问题，也可能会引入新的问题，比如参考资料4中提到的系统启动时候服务启动顺序的问题～～
+Dnsmasq扩展阅读：
+Dnsmasq提供DNS缓存和DHCP服务功能。作为域名解析服务器(DNS)，dnsmasq可以通过缓存DNS请求来提高对访问过的网址的连接速度。作为DHCP服务器，dnsmasq可以用于为局域网电脑分配内网ip地址和提供路由。DNS和DHCP两个功能可以同时或分别单独实现。dnsmasq轻量且易配置，适用于个人用户或少于50台主机的网络。此外它还自带了一个PXE服务器。&amp;gt;&amp;gt;&amp;gt;
+不使用Dnsmasq直接设置系统的DNS服务器
+修改/etc/resolvconf/resolv.conf.d/base文件中DNS配置：
+nameserver 114.114.114.114 nameserver 223.5.5.5 nameserver 114.114.115.115 nameserver 223.6.6.6  参考资料：</description>
     </item>
     
   </channel>

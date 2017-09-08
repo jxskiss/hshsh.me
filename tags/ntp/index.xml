@@ -7,7 +7,9 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <lastBuildDate>Sat, 30 Jul 2016 07:30:00 +0800</lastBuildDate>
-    <atom:link href="http://hshsh.me/tags/ntp/index.xml" rel="self" type="application/rss+xml" />
+    
+	<atom:link href="http://hshsh.me/tags/ntp/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>遭遇时间不同步引起的BUG</title>
@@ -15,16 +17,11 @@
       <pubDate>Sat, 30 Jul 2016 07:30:00 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2016-07-30-fix-bug-caused-by-un-synced-time/</guid>
-      <description>&lt;p&gt;前段时间遇到一个诡异的bug，后端代码有使用到一个数据服务API，接口有时间戳验证。API服务跑在云服务器上，程序后台跑在本地Ubuntu服务器上。&lt;/p&gt;
-
-&lt;p&gt;两个服务都是我写的，API服务升级了时间戳验证功能后重新部署，本地服务器上的程序后台服务居然挂掉了，开发电脑上各种测试都正常，只好开启调试日志检查。结果发现是本地服务器上时间比API服务的时间快了两分钟多。&lt;/p&gt;
-
-&lt;p&gt;查看服务器配置，发现Ubuntu Server发行版默认居然没有安装NTP服务，Server版居然不开启时间同步服务？？？一万匹草泥马奔腾而过……&lt;/p&gt;
-
-&lt;p&gt;找到问题，解决就简单了，安装NTP服务，顺便把时间服务器配置到国内某云的时间服务器~&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;重点强调&lt;/strong&gt;：部署Server服务器后一定要检查NTP服务起了没？一定要起时间同步服务，并且要配置速度比较快的时间同步服务器。&lt;/p&gt;
-</description>
+      <description>前段时间遇到一个诡异的bug，后端代码有使用到一个数据服务API，接口有时间戳验证。API服务跑在云服务器上，程序后台跑在本地Ubuntu服务器上。
+两个服务都是我写的，API服务升级了时间戳验证功能后重新部署，本地服务器上的程序后台服务居然挂掉了，开发电脑上各种测试都正常，只好开启调试日志检查。结果发现是本地服务器上时间比API服务的时间快了两分钟多。
+查看服务器配置，发现Ubuntu Server发行版默认居然没有安装NTP服务，Server版居然不开启时间同步服务？？？一万匹草泥马奔腾而过……
+找到问题，解决就简单了，安装NTP服务，顺便把时间服务器配置到国内某云的时间服务器~
+重点强调：部署Server服务器后一定要检查NTP服务起了没？一定要起时间同步服务，并且要配置速度比较快的时间同步服务器。</description>
     </item>
     
   </channel>

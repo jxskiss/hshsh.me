@@ -7,7 +7,9 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <lastBuildDate>Wed, 07 Sep 2016 10:00:00 +0800</lastBuildDate>
-    <atom:link href="http://hshsh.me/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+    
+	<atom:link href="http://hshsh.me/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>解决Fedora24上Pycharm中中文显示方块的问题</title>
@@ -15,26 +17,12 @@
       <pubDate>Wed, 07 Sep 2016 10:00:00 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2016-09-07-fedora-24-pycharm-chinese-fonts/</guid>
-      <description>&lt;p&gt;先说说在Ubuntu上遇到的奇怪的TCP连接失败问题，在升级到Ubuntu16.04后，电脑突然连不上阿里云上的一台Ubuntu服务器了（所有TCP端口都无法连接），连接另外一台Windows服务器正常，办公室里另外一台Ubuntu16.04电脑也无法连接到这台Ubuntu服务器，但是其他Windows系统的电脑访问一切正常，另外还有两台Ubuntu14.04的工作站连接正常。后来又有一个同事的Ubuntu14.04也出现了连接不上的问题。而且还是有时候一连几个小时连接不上，有时候又一切正常的。&lt;/p&gt;
-
-&lt;p&gt;莫名其妙的问题，研(sou)究(suo)两天之后（Google关键字：&lt;a href=&#34;https://www.google.com/?q=ubuntu+tcp+retransmission&#34;&gt;ubuntu tcp retransmission&lt;/a&gt;），发现这个问题好像是Debian系列发行版的毛病，又好像会针对虚拟机才会出现，网上也有很多报告这个问题的，但是都没有合适的解决方案。所以决定换个发行版咯，就试试Fedora呗～&lt;/p&gt;
-
-&lt;p&gt;Fedora Workstation 24安装不复杂，一路next就高定了，dnf命令用起来跟apt-get也差不多。&lt;/p&gt;
-
-&lt;p&gt;但是用Pycharm编辑Markdown文件时候，发现预览页面很多中文字符都变成方块了，理论上这个是字体的问题，但是不知道需要的是哪一个字体，在&lt;a href=&#34;https://www.zhukun.net/archives/6614&#34;&gt;Fedora 21安装以后的优化&lt;/a&gt;这篇文章中提到一些常用的字体，先装上试试。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo dnf install google-droid-sans-fonts
-sudo dnf install wqy-zenhei-fonts
-sudo dnf install adobe-source-han-sans-cn-fonts
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;另外，安装字体的时候，我还安装了LibreOffice的中文语言支持包，不知道里面有没有甬道的字体：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;sudo dnf install libreoffice-langpack-zh-Hans
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;安装完字体，关掉所有已经打开的Pycharm程序，重新启动Pycharm，所有中文字体显示就正常了。&lt;/p&gt;
-</description>
+      <description>先说说在Ubuntu上遇到的奇怪的TCP连接失败问题，在升级到Ubuntu16.04后，电脑突然连不上阿里云上的一台Ubuntu服务器了（所有TCP端口都无法连接），连接另外一台Windows服务器正常，办公室里另外一台Ubuntu16.04电脑也无法连接到这台Ubuntu服务器，但是其他Windows系统的电脑访问一切正常，另外还有两台Ubuntu14.04的工作站连接正常。后来又有一个同事的Ubuntu14.04也出现了连接不上的问题。而且还是有时候一连几个小时连接不上，有时候又一切正常的。
+莫名其妙的问题，研(sou)究(suo)两天之后（Google关键字：ubuntu tcp retransmission），发现这个问题好像是Debian系列发行版的毛病，又好像会针对虚拟机才会出现，网上也有很多报告这个问题的，但是都没有合适的解决方案。所以决定换个发行版咯，就试试Fedora呗～
+Fedora Workstation 24安装不复杂，一路next就高定了，dnf命令用起来跟apt-get也差不多。
+但是用Pycharm编辑Markdown文件时候，发现预览页面很多中文字符都变成方块了，理论上这个是字体的问题，但是不知道需要的是哪一个字体，在Fedora 21安装以后的优化这篇文章中提到一些常用的字体，先装上试试。
+sudo dnf install google-droid-sans-fonts sudo dnf install wqy-zenhei-fonts sudo dnf install adobe-source-han-sans-cn-fonts  另外，安装字体的时候，我还安装了LibreOffice的中文语言支持包，不知道里面有没有甬道的字体：
+sudo dnf install libreoffice-langpack-zh-Hans  安装完字体，关掉所有已经打开的Pycharm程序，重新启动Pycharm，所有中文字体显示就正常了。</description>
     </item>
     
     <item>
@@ -43,84 +31,27 @@ sudo dnf install adobe-source-han-sans-cn-fonts
       <pubDate>Tue, 09 Aug 2016 11:03:30 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2016-08-09-ubuntu-14.04-dnsmasq/</guid>
-      <description>&lt;p&gt;作为技术备忘，为了纪念为此死去的千千万万脑细胞，先说问题：&lt;/p&gt;
-
-&lt;p&gt;公司搬家后，一台工作站上的爬虫程序突然莫名其妙的变慢，从一天20多万条数据萎缩到了14W-20W条不稳定，因为新办公室里所有部门共用一条网线，起初还以为是网络拥挤，属于正常情况，后来居然夸张的变成了每天3W条数据，经过跟踪发现这个爬虫全天候不分时间段的慢，这就很不对了。然后开始一系列的排查。&lt;/p&gt;
-
-&lt;p&gt;后来把爬虫里面用域名访问的代码改成使用IP地址访问，发现速度连接速度不慢，但是一使用域名就变龟速了，很明显域名解析出问题了，作为临时方案，我居然手写了一段IP地址缓存的代码，:(&amp;lt;&lt;/p&gt;
-
-&lt;p&gt;吐槽一下：Ubuntu系统配置DNS一点都不方便！！&lt;/p&gt;
-
-&lt;p&gt;发现工作站上的DNS服务器被配置成了8.8.8.8，然而这段时间Google的DNS抽风了，经常连接不上，所以解决办法就很简单了。&lt;/p&gt;
-
-&lt;p&gt;研究配置DNS的过程中，被灌输了一堆新名词：dnsmasq, resolv.conf, NetworkManager, resolvconf &amp;hellip;&lt;/p&gt;
-
-&lt;p&gt;没看全部的文档，根据查阅的部分资料，Ubuntu的DNS机制大概是这样的：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;NetworkManager管理DNS配置，图形界面“编辑连接”弹出来的就是这货，这里配置的DNS存储在&lt;code&gt;/run/resolvconf/interface/NetworkManager&lt;/code&gt;文件中。&lt;/li&gt;
-&lt;li&gt;系统范围DNS的基本配置在&lt;code&gt;/etc/resolvconf/resolv.conf.d/&lt;/code&gt;这个目录下面，这里有三个文件：&lt;code&gt;base&lt;/code&gt;中是基本配置，系统动态生成&lt;code&gt;resolv.conf&lt;/code&gt;文件时要包含的内容；&lt;code&gt;head&lt;/code&gt;也是要包含在&lt;code&gt;resolv.conf&lt;/code&gt;文件中的，里面主要包含一些说明，比如不要修改我会被覆盖之类的；&lt;code&gt;tail&lt;/code&gt;里是要追加到动态生成的&lt;code&gt;resolv.conf&lt;/code&gt;文件末尾的内容。&lt;/li&gt;
-&lt;li&gt;从Ubuntu 12.04开始，系统默认都会安装一个阉割版的dnsmasq服务（dnsmasq-base包，不是dnsmasq包），主要是为了解决DNS和VPN之间的什么什么暧昧问题的，监听在127.0.1.1:53地址上，系统DNS请求都会发到这个监听地址上。&lt;/li&gt;
-&lt;li&gt;系统启动或者执行&lt;code&gt;resolvconf -u&lt;/code&gt;命令的时候，会根据配置动态生成DNS配置文件&lt;code&gt;/ete/resolv.conf&lt;/code&gt;。&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;这个理解必然是不全面的，甚至有些完全就是错的，留待下次再搞DNS问题的时候研究吧。&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;相关的解决方法&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;安装完整功能的Dnsmasq：&lt;code&gt;sudo apt-get install dnsmasq&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;配置Dnsmasq上游DNS服务器和本地监听地址，修改&lt;code&gt;/etc/dnsmasq.conf&lt;/code&gt;文件：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;listen-address=127.0.0.1,127.0.1.1
-resolv-file=/etc/resolv.dnsmasq
-conf-dir=/etc/dnsmasq.d
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;code&gt;/etc/resolv.dnsmasq&lt;/code&gt;文件里面写上游DNS服务器地址：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;nameserver 114.114.114.114
-nameserver 223.5.5.5
-nameserver 114.114.115.115
-nameserver 223.6.6.6
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;其他dnsmasq配置自由发挥就好啦～&lt;/p&gt;
-
-&lt;p&gt;修改系统DNS解析配置&lt;code&gt;/etc/resolvconf/resolv.conf.d/base&lt;/code&gt;：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;nameserver 127.0.0.1
-nameserver 114.114.114.114
-nameserver 223.5.5.5
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;然后启动dnsmasq服务：&lt;code&gt;sudo service dnsmasq restart&lt;/code&gt;，更新DNS动态配置：&lt;code&gt;sudo resolvconf -u&lt;/code&gt;。&lt;/p&gt;
-
-&lt;p&gt;以上步骤&lt;strong&gt;可能&lt;/strong&gt;就解决问题了，也可能还会有问题，也可能会引入新的问题，比如参考资料4中提到的系统启动时候服务启动顺序的问题～～&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;Dnsmasq扩展阅读&lt;/strong&gt;：&lt;/p&gt;
-
-&lt;p&gt;Dnsmasq提供DNS缓存和DHCP服务功能。作为域名解析服务器(DNS)，dnsmasq可以通过缓存DNS请求来提高对访问过的网址的连接速度。作为DHCP服务器，dnsmasq可以用于为局域网电脑分配内网ip地址和提供路由。DNS和DHCP两个功能可以同时或分别单独实现。dnsmasq轻量且易配置，适用于个人用户或少于50台主机的网络。此外它还自带了一个PXE服务器。&lt;a href=&#34;https://wiki.archlinux.org/index.php/Dnsmasq&#34;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;不使用Dnsmasq直接设置系统的DNS服务器&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;修改&lt;code&gt;/etc/resolvconf/resolv.conf.d/base&lt;/code&gt;文件中DNS配置：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;nameserver 114.114.114.114
-nameserver 223.5.5.5
-nameserver 114.114.115.115
-nameserver 223.6.6.6
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;strong&gt;参考资料&lt;/strong&gt;：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&lt;a href=&#34;http://wiki.ubuntu.org.cn/%E4%BD%BF%E7%94%A8%E6%9C%AC%E5%9C%B0DNS%E5%8A%A0%E9%80%9F%E7%BD%91%E7%BB%9C%E8%AE%BF%E9%97%AE&#34;&gt;使用本地DNS加速网络访问&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://unix.stackexchange.com/questions/128220/how-do-i-set-my-dns-when-resolv-conf-is-being-overwritten&#34;&gt;How do I set my DNS when resolv.conf is being overwritten?&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://superuser.com/questions/681993/using-dnsmasq-with-networkmanager&#34;&gt;Using dnsmasq with NetworkManager&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://gist.github.com/magnetikonline/6236150&#34;&gt;Using Dnsmasq with Ubuntu for VM web application testing&lt;/a&gt;&lt;/li&gt;
-&lt;/ol&gt;
-</description>
+      <description>作为技术备忘，为了纪念为此死去的千千万万脑细胞，先说问题：
+公司搬家后，一台工作站上的爬虫程序突然莫名其妙的变慢，从一天20多万条数据萎缩到了14W-20W条不稳定，因为新办公室里所有部门共用一条网线，起初还以为是网络拥挤，属于正常情况，后来居然夸张的变成了每天3W条数据，经过跟踪发现这个爬虫全天候不分时间段的慢，这就很不对了。然后开始一系列的排查。
+后来把爬虫里面用域名访问的代码改成使用IP地址访问，发现速度连接速度不慢，但是一使用域名就变龟速了，很明显域名解析出问题了，作为临时方案，我居然手写了一段IP地址缓存的代码，:(&amp;lt;
+吐槽一下：Ubuntu系统配置DNS一点都不方便！！
+发现工作站上的DNS服务器被配置成了8.8.8.8，然而这段时间Google的DNS抽风了，经常连接不上，所以解决办法就很简单了。
+研究配置DNS的过程中，被灌输了一堆新名词：dnsmasq, resolv.conf, NetworkManager, resolvconf &amp;hellip;
+没看全部的文档，根据查阅的部分资料，Ubuntu的DNS机制大概是这样的：
+ NetworkManager管理DNS配置，图形界面“编辑连接”弹出来的就是这货，这里配置的DNS存储在/run/resolvconf/interface/NetworkManager文件中。 系统范围DNS的基本配置在/etc/resolvconf/resolv.conf.d/这个目录下面，这里有三个文件：base中是基本配置，系统动态生成resolv.conf文件时要包含的内容；head也是要包含在resolv.conf文件中的，里面主要包含一些说明，比如不要修改我会被覆盖之类的；tail里是要追加到动态生成的resolv.conf文件末尾的内容。 从Ubuntu 12.04开始，系统默认都会安装一个阉割版的dnsmasq服务（dnsmasq-base包，不是dnsmasq包），主要是为了解决DNS和VPN之间的什么什么暧昧问题的，监听在127.0.1.1:53地址上，系统DNS请求都会发到这个监听地址上。 系统启动或者执行resolvconf -u命令的时候，会根据配置动态生成DNS配置文件/ete/resolv.conf。  这个理解必然是不全面的，甚至有些完全就是错的，留待下次再搞DNS问题的时候研究吧。
+相关的解决方法
+安装完整功能的Dnsmasq：sudo apt-get install dnsmasq
+配置Dnsmasq上游DNS服务器和本地监听地址，修改/etc/dnsmasq.conf文件：
+listen-address=127.0.0.1,127.0.1.1 resolv-file=/etc/resolv.dnsmasq conf-dir=/etc/dnsmasq.d  /etc/resolv.dnsmasq文件里面写上游DNS服务器地址：
+nameserver 114.114.114.114 nameserver 223.5.5.5 nameserver 114.114.115.115 nameserver 223.6.6.6  其他dnsmasq配置自由发挥就好啦～
+修改系统DNS解析配置/etc/resolvconf/resolv.conf.d/base：
+nameserver 127.0.0.1 nameserver 114.114.114.114 nameserver 223.5.5.5  然后启动dnsmasq服务：sudo service dnsmasq restart，更新DNS动态配置：sudo resolvconf -u。
+以上步骤可能就解决问题了，也可能还会有问题，也可能会引入新的问题，比如参考资料4中提到的系统启动时候服务启动顺序的问题～～
+Dnsmasq扩展阅读：
+Dnsmasq提供DNS缓存和DHCP服务功能。作为域名解析服务器(DNS)，dnsmasq可以通过缓存DNS请求来提高对访问过的网址的连接速度。作为DHCP服务器，dnsmasq可以用于为局域网电脑分配内网ip地址和提供路由。DNS和DHCP两个功能可以同时或分别单独实现。dnsmasq轻量且易配置，适用于个人用户或少于50台主机的网络。此外它还自带了一个PXE服务器。&amp;gt;&amp;gt;&amp;gt;
+不使用Dnsmasq直接设置系统的DNS服务器
+修改/etc/resolvconf/resolv.conf.d/base文件中DNS配置：
+nameserver 114.114.114.114 nameserver 223.5.5.5 nameserver 114.114.115.115 nameserver 223.6.6.6  参考资料：</description>
     </item>
     
     <item>
@@ -129,16 +60,11 @@ nameserver 223.6.6.6
       <pubDate>Sat, 30 Jul 2016 07:30:00 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2016-07-30-fix-bug-caused-by-un-synced-time/</guid>
-      <description>&lt;p&gt;前段时间遇到一个诡异的bug，后端代码有使用到一个数据服务API，接口有时间戳验证。API服务跑在云服务器上，程序后台跑在本地Ubuntu服务器上。&lt;/p&gt;
-
-&lt;p&gt;两个服务都是我写的，API服务升级了时间戳验证功能后重新部署，本地服务器上的程序后台服务居然挂掉了，开发电脑上各种测试都正常，只好开启调试日志检查。结果发现是本地服务器上时间比API服务的时间快了两分钟多。&lt;/p&gt;
-
-&lt;p&gt;查看服务器配置，发现Ubuntu Server发行版默认居然没有安装NTP服务，Server版居然不开启时间同步服务？？？一万匹草泥马奔腾而过……&lt;/p&gt;
-
-&lt;p&gt;找到问题，解决就简单了，安装NTP服务，顺便把时间服务器配置到国内某云的时间服务器~&lt;/p&gt;
-
-&lt;p&gt;&lt;strong&gt;重点强调&lt;/strong&gt;：部署Server服务器后一定要检查NTP服务起了没？一定要起时间同步服务，并且要配置速度比较快的时间同步服务器。&lt;/p&gt;
-</description>
+      <description>前段时间遇到一个诡异的bug，后端代码有使用到一个数据服务API，接口有时间戳验证。API服务跑在云服务器上，程序后台跑在本地Ubuntu服务器上。
+两个服务都是我写的，API服务升级了时间戳验证功能后重新部署，本地服务器上的程序后台服务居然挂掉了，开发电脑上各种测试都正常，只好开启调试日志检查。结果发现是本地服务器上时间比API服务的时间快了两分钟多。
+查看服务器配置，发现Ubuntu Server发行版默认居然没有安装NTP服务，Server版居然不开启时间同步服务？？？一万匹草泥马奔腾而过……
+找到问题，解决就简单了，安装NTP服务，顺便把时间服务器配置到国内某云的时间服务器~
+重点强调：部署Server服务器后一定要检查NTP服务起了没？一定要起时间同步服务，并且要配置速度比较快的时间同步服务器。</description>
     </item>
     
     <item>
@@ -147,40 +73,9 @@ nameserver 223.6.6.6
       <pubDate>Sat, 30 Jul 2016 07:20:00 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2016-07-30-using-aliyun-mirror-for-ubuntu-14.04/</guid>
-      <description>&lt;p&gt;Ubuntu的官方源也是慢的不行不行的，怎么办？换阿里云的源，速度杠杠的！&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak  # 备份
-sudo vim /etc/apt/sources.list  # 修改配置
-sudo apt-get clean &amp;amp;&amp;amp; sudo apt-get update  # 更新列表
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;修改源配置如下：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-txt&#34;&gt;deb http://mirrors.aliyun.com/ubuntu/ trusty main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ trusty-security main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ trusty-updates main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ trusty-proposed main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ trusty-backports main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ trusty main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ trusty-security main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ trusty-updates main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ trusty-proposed main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ trusty-backports main restricted universe multiverse
-
-## Uncomment the following two lines to add software from Canonical&#39;s
-## &#39;partner&#39; repository.
-## This software is not part of Ubuntu, but is offered by Canonical and the
-## respective vendors as a service to Ubuntu users.
-# deb http://archive.canonical.com/ubuntu trusty partner
-# deb-src http://archive.canonical.com/ubuntu trusty partner
-
-## This software is not part of Ubuntu, but is offered by third-party
-## developers who want to ship their latest software.
-deb http://extras.ubuntu.com/ubuntu trusty main
-deb-src http://extras.ubuntu.com/ubuntu trusty main
-deb http://packagecloud.io/grafana/testing/debian/ wheezy main
-&lt;/code&gt;&lt;/pre&gt;
-</description>
+      <description>Ubuntu的官方源也是慢的不行不行的，怎么办？换阿里云的源，速度杠杠的！
+sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak # 备份 sudo vim /etc/apt/sources.list # 修改配置 sudo apt-get clean &amp;amp;&amp;amp; sudo apt-get update # 更新列表  修改源配置如下：
+deb http://mirrors.aliyun.com/ubuntu/ trusty main restricted universe multiverse deb http://mirrors.aliyun.com/ubuntu/ trusty-security main restricted universe multiverse deb http://mirrors.aliyun.com/ubuntu/ trusty-updates main restricted universe multiverse deb http://mirrors.aliyun.com/ubuntu/ trusty-proposed main restricted universe multiverse deb http://mirrors.aliyun.com/ubuntu/ trusty-backports main restricted universe multiverse deb-src http://mirrors.aliyun.com/ubuntu/ trusty main restricted universe multiverse deb-src http://mirrors.aliyun.com/ubuntu/ trusty-security main restricted universe multiverse deb-src http://mirrors.</description>
     </item>
     
     <item>
@@ -189,95 +84,11 @@ deb http://packagecloud.io/grafana/testing/debian/ wheezy main
       <pubDate>Wed, 27 Apr 2016 12:00:00 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2016-04-27-ubuntu-linux-shell-commands-notes/</guid>
-      <description>
-
-&lt;h2 id=&#34;系统配置&#34;&gt;系统配置&lt;/h2&gt;
-
-&lt;h3 id=&#34;安装-oracle-jdk&#34;&gt;安装 Oracle JDK&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ sudo add-apt-repository ppa:webupd8team/java
-$ sudo apt-get update
-$ sudo apt-get install oracle-java8-installer
-$ sudo apt-get install oracle-java8-set-default
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;永久性修改系统dns&#34;&gt;永久性修改系统DNS&lt;/h3&gt;
-
-&lt;p&gt;编辑&lt;code&gt;/etc/network/interfaces&lt;/code&gt;文件，在最后添加一行：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;dns-nameservers 8.8.8.8 8.8.4.4
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;或者可以修改&lt;code&gt;/etc/resolvconf/resolv.conf.d/base&lt;/code&gt;文件，默认为空，在其中插入：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-conf&#34;&gt;nameserver 8.8.8.8
-nameserver 8.8.4.4
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果有多个DNS，就每行添加一个。&lt;/p&gt;
-
-&lt;p&gt;NOTE：亲测，以上设置，需要重启系统后生效！&lt;/p&gt;
-
-&lt;h2 id=&#34;常用命令行工具&#34;&gt;常用命令行工具&lt;/h2&gt;
-
-&lt;h3 id=&#34;查看进程&#34;&gt;查看进程&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ ps ax
-$ ps aux
-$ ps ax | less
-$ ps ax | grep ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;查看端口&#34;&gt;查看端口&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ netstat -tap | grep ...
-$ netstat -na | grep ...
-$ ss -tln | grep ...
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;查看指定进程占用的端口号：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ ps -ef | grep &amp;quot;process name&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;根据进程ID查看招用端口号：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;# redhat
-$ netstat -nltp | grep pid
-# ubuntu
-$ netstat -anp | grep pid
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;查看占用某个端口的进程：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ lsof -i:port
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;监控日志文件&#34;&gt;监控日志文件&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ tail -f /path/to/file.log
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;重启-x-server&#34;&gt;重启 X Server&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ cat /etc/X11/default-display-manager
-$ sudo restart {DISPLAY_MANAGER}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id=&#34;输出重定向&#34;&gt;输出重定向&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ cat foo &amp;gt; foo.txt  # 重定向标准输出到文件
-$ cat foo 2&amp;gt; foo.txt  # 重定向错误输出到文件
-$ cat foo 2&amp;gt;&amp;amp;1  # 重定向错误输出到标准输出
-$ cat foo &amp;gt; foo.txt 2&amp;gt;&amp;amp;1  # 重定向标准输出和错误输出到文件
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如果要写入的文件权限不够，可以这样（&lt;code&gt;-a&lt;/code&gt;选项表示追加内容到文件）：&lt;/p&gt;
-
-&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;$ sudo sh -c &amp;quot;echo &#39;xxx&#39;&amp;quot; &amp;gt; /path/to/somefile
-$ echo &#39;xxx&#39; | sudo tee -a /path/to/somefile
-&lt;/code&gt;&lt;/pre&gt;
-</description>
+      <description>系统配置 安装 Oracle JDK $ sudo add-apt-repository ppa:webupd8team/java $ sudo apt-get update $ sudo apt-get install oracle-java8-installer $ sudo apt-get install oracle-java8-set-default  永久性修改系统DNS 编辑/etc/network/interfaces文件，在最后添加一行：
+dns-nameservers 8.8.8.8 8.8.4.4  或者可以修改/etc/resolvconf/resolv.conf.d/base文件，默认为空，在其中插入：
+nameserver 8.8.8.8 nameserver 8.8.4.4  如果有多个DNS，就每行添加一个。
+NOTE：亲测，以上设置，需要重启系统后生效！
+常用命令行工具 查看进程 $ ps ax $ ps aux $ ps ax | less $ ps ax | grep ...  查看端口 $ netstat -tap | grep ... $ netstat -na | grep .</description>
     </item>
     
     <item>
@@ -286,68 +97,21 @@ $ echo &#39;xxx&#39; | sudo tee -a /path/to/somefile
       <pubDate>Sat, 02 Apr 2016 22:33:15 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2016-04-02-linux-pack-and-unpack/</guid>
-      <description>
-
-&lt;h2 id=&#34;tar&#34;&gt;.tar&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar cvf file.tar dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar xvf filename.tar&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;gz&#34;&gt;.gz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;gzip dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;gzip -d filename.gz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-gz&#34;&gt;.tar.gz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar zcvf file.tar.gz dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf file.tar.gz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-bz2&#34;&gt;.tar.bz2&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar jcvf file.tar.bz2 dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar jxvf filename.tar.bz2&lt;/code&gt; or &lt;code&gt;tar jxvf filename.tar.bz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;zip&#34;&gt;.zip&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;zip file.zip dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;unzip filename.zip&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;rar&#34;&gt;.rar&lt;/h2&gt;
-
-&lt;p&gt;安装： &lt;code&gt;sudo apt-get install rar&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;打包： &lt;code&gt;rar e dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;rar a filename.rar&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;z&#34;&gt;.z&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;compress dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;uncompress filename.z&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-z&#34;&gt;.tar.Z&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar Zcvf file.tar.Z dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar Zxvf filename.tar.Z&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tgz&#34;&gt;.tgz&lt;/h2&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf filename.tgz&lt;/code&gt;&lt;/p&gt;
-
-&lt;h2 id=&#34;tar-tgz&#34;&gt;.tar.tgz&lt;/h2&gt;
-
-&lt;p&gt;打包： &lt;code&gt;tar zcvf file.tar.tgz dirname&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;解包： &lt;code&gt;tar zxvf filename.tar.tgz&lt;/code&gt;&lt;/p&gt;
-</description>
+      <description>.tar 打包： tar cvf file.tar dirname
+解包： tar xvf filename.tar
+.gz 打包： gzip dirname
+解包： gzip -d filename.gz
+.tar.gz 打包： tar zcvf file.tar.gz dirname
+解包： tar zxvf file.tar.gz
+.tar.bz2 打包： tar jcvf file.tar.bz2 dirname
+解包： tar jxvf filename.tar.bz2 or tar jxvf filename.tar.bz
+.zip 打包： zip file.zip dirname
+解包： unzip filename.zip
+.rar 安装： sudo apt-get install rar
+打包： rar e dirname
+解包： rar a filename.rar
+.z 打包： compress dirname
+解包： uncompress filename.</description>
     </item>
     
   </channel>

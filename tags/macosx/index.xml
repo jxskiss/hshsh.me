@@ -7,7 +7,9 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <lastBuildDate>Sat, 04 Mar 2017 14:50:00 +0800</lastBuildDate>
-    <atom:link href="http://hshsh.me/tags/macosx/index.xml" rel="self" type="application/rss+xml" />
+    
+	<atom:link href="http://hshsh.me/tags/macosx/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>MacBook Pro上完美使用IKBC C87机械键盘</title>
@@ -15,67 +17,16 @@
       <pubDate>Sat, 04 Mar 2017 14:50:00 +0800</pubDate>
       
       <guid>http://hshsh.me/post/2017-03-04-ikbc-keyboard-on-mac/</guid>
-      <description>&lt;p&gt;最近也用上了MacBook Pro，除了吐槽一下这个Multi Touch Bar键盘敲起来没有一点手感，还有数字&amp;rdquo;1&amp;rdquo;左边那个丧心病狂的的&amp;rdquo;Section（§）&amp;rdquo;之外，其他方面用起来真心舒服。&lt;/p&gt;
-
-&lt;p&gt;适应了几天Mac的键位后，琢磨着把自己的IKBC C87机械键盘接上来用，主要参考了下面的文章：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;http://plus.zealer.com/post/56805.html&#34;&gt;让机械键盘完美适配你的Mac！&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://damieng.com/blog/2015/04/24/make-home-end-keys-behave-like-windows-on-mac-os-x&#34;&gt;Make Home &amp;amp; End keys behave like Windows on Mac OS X&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;http://osxnotes.net/keybindings.html&#34;&gt;DefaultKeyBinding.dict&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;作为一枚死宅的程序猿，我的需求很简单：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;把数字&amp;rdquo;1&amp;rdquo;左边的Section键换回反引号键&amp;rdquo;`~&amp;ldquo;，把半残的左边Shift键右边的反引号键还原成Shift；&lt;/li&gt;
-&lt;li&gt;把IKBC C87上的Control、Win、Alt键映射成Mac的Control、Option、Command键位顺序；&lt;/li&gt;
-&lt;li&gt;把IKBC C87上的Home、End、PageUp、PageDown键功能都可以正常跳转&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;嗯，就这样，通过一番研（sou）究（suo）之后，发现可以通过如下组合实现上面的功能：&lt;/p&gt;
-
-&lt;p&gt;Karabiner Elements修改建伟映射、DefaultKeyBinding.dict修改组合键功能、Alfred控制快速切换Karabiner Elements的Profile。&lt;/p&gt;
-
-&lt;p&gt;具体过程略过，简要记录一下主要配置。&lt;/p&gt;
-
-&lt;p&gt;Karabiner Elements建立三个Profiles：&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;&amp;ldquo;none&amp;rdquo;：原始键盘，不映射任何键位，这个主要是用作偶尔别人使用电脑不习惯改键或键位修改出现问题时，可以快速恢复；&lt;/li&gt;
-&lt;li&gt;&amp;ldquo;internal&amp;rdquo;：这个用于映射内置键盘的&amp;rdquo;§±&amp;rdquo;和&amp;rdquo;`~&amp;ldquo;键；&lt;/li&gt;
-&lt;li&gt;&amp;ldquo;ikbc&amp;rdquo;: 用于映射机械键盘上的Control、Win、Alt键的顺序；&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;这三个映射使用&lt;a href=&#34;http://www.packal.org/workflow/karabiner-elements-profile-switcher&#34;&gt;Karabiner Elements Profile Switcher&lt;/a&gt;这个Workflow可以快速切换。因为Karabiner Elements现在还不可以根据键盘关联自动调用对应的Profile。&lt;/p&gt;
-
-&lt;p&gt;我给每个Profile都制定了一个快捷键（Alfred Trigger Hotkey）：&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Ctrl + Option + Command + K：切换到 &amp;ldquo;none&amp;rdquo; Profile；&lt;/li&gt;
-&lt;li&gt;在内置键盘上使用 F12 切换到 &amp;ldquo;internal&amp;rdquo; Profile；&lt;/li&gt;
-&lt;li&gt;机械键盘上的 PrtSrc 键被 Karabiner Elements 识别出来是F13，所以就用了这个 &amp;ldquo;F13&amp;rdquo; 切换到 &amp;ldquo;ikbc&amp;rdquo; Profile。&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;我的编码习惯经常会用到Home、End、PageUp、PageDown这几个键进行快速跳转，接上机械键盘自然能把这些键配置起来是最好了。好在实现这些功能键不需要KE和Alfred的功能，直接使用系统配置就可以完成。&lt;/p&gt;
-
-&lt;p&gt;把要绑定的键的配置写入到文件&amp;rdquo;~/Library/KeyBindings/DefaultKeyBinding.dict&amp;rdquo;就可以了。更多绑定和功能列表请参照资料自行配置。&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;➜  ~ cat ~/Library/KeyBindings/DefaultKeyBinding.dict
-{
-    &amp;quot;\UF729&amp;quot;  = moveToBeginningOfParagraph:;  // home
-    &amp;quot;\UF72B&amp;quot;  = moveToEndOfParagraph:;  // end
-    &amp;quot;$\UF729&amp;quot; = moveToBeginningOfParagraphAndModifySelection:;  // shift-home
-    &amp;quot;$\UF72B&amp;quot; = moveToEndOfParagraphAndModifySelection:;  // shift-end
-    &amp;quot;^\UF729&amp;quot; = moveToBeginningOfDocument:;  // ctrl-home
-    &amp;quot;^\UF72B&amp;quot; = moveToEndOfDocument:;  // ctrl-end
-    &amp;quot;^$\UF729&amp;quot; = moveToBeginningOfDocumentAndModifySelection:;  // ctrl-shift-home
-    &amp;quot;^$\UF72B&amp;quot; = moveToEndOfDocumentAndModifySelection:;  // ctrl-shift-end
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;如此，又可以用我的键盘愉快的啪啪啪了，貌似我敲键盘的声音会比较大一些，对我就是故意的😄😄😄😄😄&lt;/p&gt;
-</description>
+      <description>最近也用上了MacBook Pro，除了吐槽一下这个Multi Touch Bar键盘敲起来没有一点手感，还有数字&amp;rdquo;1&amp;rdquo;左边那个丧心病狂的的&amp;rdquo;Section（§）&amp;rdquo;之外，其他方面用起来真心舒服。
+适应了几天Mac的键位后，琢磨着把自己的IKBC C87机械键盘接上来用，主要参考了下面的文章：
+ 让机械键盘完美适配你的Mac！ Make Home &amp;amp; End keys behave like Windows on Mac OS X DefaultKeyBinding.dict  作为一枚死宅的程序猿，我的需求很简单：
+ 把数字&amp;rdquo;1&amp;rdquo;左边的Section键换回反引号键&amp;rdquo;`~&amp;ldquo;，把半残的左边Shift键右边的反引号键还原成Shift； 把IKBC C87上的Control、Win、Alt键映射成Mac的Control、Option、Command键位顺序； 把IKBC C87上的Home、End、PageUp、PageDown键功能都可以正常跳转  嗯，就这样，通过一番研（sou）究（suo）之后，发现可以通过如下组合实现上面的功能：
+Karabiner Elements修改建伟映射、DefaultKeyBinding.dict修改组合键功能、Alfred控制快速切换Karabiner Elements的Profile。
+具体过程略过，简要记录一下主要配置。
+Karabiner Elements建立三个Profiles：
+ &amp;ldquo;none&amp;rdquo;：原始键盘，不映射任何键位，这个主要是用作偶尔别人使用电脑不习惯改键或键位修改出现问题时，可以快速恢复； &amp;ldquo;internal&amp;rdquo;：这个用于映射内置键盘的&amp;rdquo;§±&amp;rdquo;和&amp;rdquo;`~&amp;ldquo;键； &amp;ldquo;ikbc&amp;rdquo;: 用于映射机械键盘上的Control、Win、Alt键的顺序；  这三个映射使用Karabiner Elements Profile Switcher这个Workflow可以快速切换。因为Karabiner Elements现在还不可以根据键盘关联自动调用对应的Profile。
+我给每个Profile都制定了一个快捷键（Alfred Trigger Hotkey）：
+ Ctrl + Option + Command + K：切换到 &amp;ldquo;none&amp;rdquo; Profile； 在内置键盘上使用 F12 切换到 &amp;ldquo;internal&amp;rdquo; Profile； 机械键盘上的 PrtSrc 键被 Karabiner Elements 识别出来是F13，所以就用了这个 &amp;ldquo;F13&amp;rdquo; 切换到 &amp;ldquo;ikbc&amp;rdquo; Profile。  我的编码习惯经常会用到Home、End、PageUp、PageDown这几个键进行快速跳转，接上机械键盘自然能把这些键配置起来是最好了。好在实现这些功能键不需要KE和Alfred的功能，直接使用系统配置就可以完成。</description>
     </item>
     
   </channel>
