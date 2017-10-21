@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Programming on hshsh&#39;s little site</title>
-    <link>http://hshsh.me/tags/programming/</link>
-    <description>Recent content in Programming on hshsh&#39;s little site</description>
+    <title>Algorithm on hshsh&#39;s little site</title>
+    <link>http://hshsh.me/tags/algorithm/</link>
+    <description>Recent content in Algorithm on hshsh&#39;s little site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
     <lastBuildDate>Sat, 21 Oct 2017 23:00:00 +0800</lastBuildDate>
     
-	<atom:link href="http://hshsh.me/tags/programming/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="http://hshsh.me/tags/algorithm/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -29,16 +29,6 @@ h = Hash(key) % 3  其中，Hash 是一个从字符串到正整数的哈希映�
 h = Hash(key) % N  这个算式计算每个 key 的请求应该被发送到哪台服务器，其中 N 为服务器的数量，并且服务器按照 0..(N-1) 进行编号。
 这个算法的问题在于容错性和扩展性不好。所谓容错性是指当系统中某一个或几个服务器变得不可用时，整个系统是否可以正确高效运行；而扩展性是指当加入新的服务器后，整个系统是否可以正确高效运行。
 现在假设有一台服务器宕机了，那么为了填补空缺，要将宕机的服务器从编号列表中移除，后面的服务器按顺序前移一位并将其编号值减一，此时每个 key 就要按 h = Hash(key) % (N-1) 重新计算；同样，如果新增了一台服务器，虽然原有服务器编号不用改变，但是要按 h = Hash(key) % (N+1) 重新计算哈希值。因此系统中一旦有服务器变更，大量的 key 会被重定位到不同有服务器从而造成大量的缓存不命中。而这种情况在分布式系统中是非常糟糕的。</description>
-    </item>
-    
-    <item>
-      <title>Django Admin 定制开发技巧</title>
-      <link>http://hshsh.me/post/2017-06-13-django-admin-ticks/</link>
-      <pubDate>Tue, 13 Jun 2017 23:00:00 +0800</pubDate>
-      
-      <guid>http://hshsh.me/post/2017-06-13-django-admin-ticks/</guid>
-      <description>过滤器（Filters） 下拉列表式过滤器 模版文件：
-{% load i18n %} &amp;lt;script type=&amp;quot;text/javascript&amp;quot;&amp;gt;var go_from_select = function(opt) { window.location = window.location.pathname + opt };&amp;lt;/script&amp;gt; &amp;lt;h3&amp;gt;{% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}&amp;lt;/h3&amp;gt; &amp;lt;ul class=&amp;quot;admin-filter-{{ title|cut:&#39; &#39; }}&amp;quot;&amp;gt; {% if choices|slice:&amp;quot;4:&amp;quot; %} &amp;lt;li&amp;gt; &amp;lt;select style=&amp;quot;width: 95%;&amp;quot; onchange=&amp;quot;go_from_select(this.options[this.selectedIndex].value)&amp;quot;&amp;gt; {% for choice in choices %} &amp;lt;option{% if choice.selected %} selected=&amp;quot;selected&amp;quot;{% endif %} value=&amp;quot;{{ choice.query_string|iriencode }}&amp;quot;&amp;gt;{{ choice.display }}&amp;lt;/option&amp;gt; {% endfor %} &amp;lt;/select&amp;gt; &amp;lt;/li&amp;gt; {% else %} {% for choice in choices %} &amp;lt;li{% if choice.</description>
     </item>
     
   </channel>
