@@ -1,7 +1,7 @@
 +++
 Categories = ["Programming", "Python"]
-Description = "Django admin customization ticks."
-Tags = ["programming", "python", "django", "ticks"]
+Description = "Django admin customization tricks."
+Tags = ["programming", "python", "django", "tricks"]
 date = "2017-06-13T23:00:00+08:00"
 menu = "main"
 title = "Django Admin 定制开发技巧"

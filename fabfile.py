@@ -24,7 +24,7 @@ def nbconvert():
     with settings(warn_only=True):
         for fn in nbfiles:
             mdfile = join(_post, splitext(basename(fn))[0] + '.md')
-            if getmtime(mdfile) >= getmtime(fn):
+            if exists(mdfile) and getmtime(mdfile) >= getmtime(fn):
                 continue
             local('jupyter nbconvert --stdout --to html --template basic '
                   '{} > {}'.format(fn, join(
@@ -44,6 +44,7 @@ def build(ipynb='convert'):
     if ipynb == 'convert':
         nbconvert()
     with settings(warn_only=True):
+        local('rm -rf public/[a-zA-Z0-9]*')
         local('hugo')
 
 
@@ -69,5 +70,7 @@ def deploy(type_='publish'):
     msg = ''
     if not type_ == 'publish':
         msg = input("Commit message: ")
+    worktree()
+    build()
     publish(msg)
     push()

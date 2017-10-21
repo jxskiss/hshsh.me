@@ -1,0 +1,346 @@
++++
+Categories = ["Programming", "Algorithm"]
+Description = "Consistent hashing."
+Tags = ["programming", "algorithm"]
+date = "2017-10-21T23:00:00+08:00"
+menu = "main"
+title = "一致性哈希算法学习笔记"
+
++++
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>一致性哈希算法（Consistent Hashing）学习笔记。</p>
+<p>主要内容从参考资料中摘抄，版权归原作者所有。</p>
+<p>参考资料：</p>
+<ul>
+<li><a href="http://blog.codinglabs.org/articles/consistent-hashing.html">一致性哈希算法及其在分布式系统中的应用</a></li>
+<li><a href="http://www.cnblogs.com/yuxc/archive/2012/06/22/2558312.html">深入云存储系统Swift核心组件：Ring实现原理剖析</a></li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="&#20998;&#24067;&#24335;&#32531;&#23384;&#38382;&#39064;">&#20998;&#24067;&#24335;&#32531;&#23384;&#38382;&#39064;<a class="anchor-link" href="#&#20998;&#24067;&#24335;&#32531;&#23384;&#38382;&#39064;">&#182;</a></h2><p>假设我们有一个网站，最近发现随着流量增加，服务器压力越来越大，之前直接读写数据库的方式不太给力了，于是我们想引入 Memcached 作为缓存机制。现在我们一共有三台机器可以作为 Memcached 服务器，如下图所示。</p>
+<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/1.png" alt=""></p>
+<p>很显然，最简单的策略是将每一次 Memcached 请求随机发送到一台 Memcached 服务器，但是这种策略可能会带来两个问题：</p>
+<ol>
+<li>同一份数据可能被存在不同的机器上而造成数据冗余；</li>
+<li>有可能某数据已经被缓存但是访问却没有命中，因为无法保证对相同 key 的访问都被发送到相同的服务器。</li>
+</ol>
+<p>因此，随机策略无论是时间效率还是空间效率都非常不好。</p>
+<p>要解决上述问题需要做到如下一点：<strong>保证对相同 key 的访问会被发送到相同的服务器</strong>。很多方法可以实现这一点，最常用的方法是计算哈希。例如对于每次访问，可以按如下算法计算哈希值：</p>
+
+<pre><code>h = Hash(key) % 3
+
+</code></pre>
+<p>其中，Hash 是一个从字符串到正整数的哈希映射函数。这样，如果我们将 Memcached Server 分别编号为 0、1、2，那么就可以根据上述算式和 key 计算出服务器编号 h，然后去访问。</p>
+<p>这个方法虽然解决了上面提到的两个问题，但是存在一些其他的问题，如果将上述方法抽象：</p>
+
+<pre><code>h = Hash(key) % N
+
+</code></pre>
+<p>这个算式计算每个 key 的请求应该被发送到哪台服务器，其中 N 为服务器的数量，并且服务器按照 0..(N-1) 进行编号。</p>
+<p>这个算法的问题在于容错性和扩展性不好。所谓容错性是指当系统中某一个或几个服务器变得不可用时，整个系统是否可以正确高效运行；而扩展性是指当加入新的服务器后，整个系统是否可以正确高效运行。</p>
+<p>现在假设有一台服务器宕机了，那么为了填补空缺，要将宕机的服务器从编号列表中移除，后面的服务器按顺序前移一位并将其编号值减一，此时每个 key 就要按 <code>h = Hash(key) % (N-1)</code> 重新计算；同样，如果新增了一台服务器，虽然原有服务器编号不用改变，但是要按 <code>h = Hash(key) % (N+1)</code> 重新计算哈希值。因此系统中一旦有服务器变更，大量的 key 会被重定位到不同有服务器从而造成大量的缓存不命中。而这种情况在分布式系统中是非常糟糕的。</p>
+<p>一个设计良好的分布式哈希方案应该具有良好的单调性，即服务节点的增减不会造成大量哈希值重定位。一致性哈希算法就是这样一种哈希方案。</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="&#19968;&#33268;&#24615;&#21704;&#24076;&#31639;&#27861;">&#19968;&#33268;&#24615;&#21704;&#24076;&#31639;&#27861;<a class="anchor-link" href="#&#19968;&#33268;&#24615;&#21704;&#24076;&#31639;&#27861;">&#182;</a></h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="&#31639;&#27861;&#31616;&#36848;">&#31639;&#27861;&#31616;&#36848;<a class="anchor-link" href="#&#31639;&#27861;&#31616;&#36848;">&#182;</a></h3><p>一致性哈希算法（Consistent Hashing）最早在论文《<a href="https://www.cs.princeton.edu/courses/archive/fall09/cos518/papers/chash.pdf">Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web</a>》中被提出。简单来说，一致性哈希将整个哈希值空间组织成一个虚拟的圆环，如假设某哈希函数 H 的值空间为 0..2<sup>32</sup>-1（即哈希值是一个32位无符号整数），整个哈希空间环如下图：</p>
+<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/2.png" alt=""></p>
+<p>整个空间按顺时针方向组织。0 和 2<sup>32</sup>-1 在零点钟方向重合。</p>
+<p>下一步将各个服务器使用哈希函数 H 计算一个哈希，具体可以选择服务器的IP或主机名作为关键字进行哈希，这样每台机器就能确定其在哈希环上的位置，这里假设将上文中三台服务器使用IP地址哈希后再环空间的位置如下：</p>
+<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/3.png" alt=""></p>
+<p>接下来使用如下算法定位数据访问到相应服务器：将数据 key 使用相同的哈希函数 H 计算出哈希值 h，根据 h 确定此数据在环上的位置，从此位置沿环顺时针“行走”，第一台遇到的服务器就是其应该定位到的服务器。</p>
+<p>例如我们有 A、B、C、D 四个数据对象，经过哈希计算后，在环空间的位置如下：</p>
+<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/4.png" alt=""></p>
+<p>根据一致性哈希算法，数据 A 会被定位到 Server 1 上，D 被定为到 Server 2 上，而 B、C 分别被定为到 Server 2 上。</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="&#23481;&#38169;&#24615;&#19982;&#21487;&#25193;&#23637;&#24615;&#20998;&#26512;">&#23481;&#38169;&#24615;&#19982;&#21487;&#25193;&#23637;&#24615;&#20998;&#26512;<a class="anchor-link" href="#&#23481;&#38169;&#24615;&#19982;&#21487;&#25193;&#23637;&#24615;&#20998;&#26512;">&#182;</a></h3><p>下面分析一致性哈希算法的容错性和可扩展性。现假设 Server 3 宕机了：</p>
+<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/5.png" alt=""></p>
+<p>可以看到此时 A、B、C 不会受到影响，只有数据 D 被重定位到 Serverr 2。一般的，在一致性哈希算法中，如果一台服务器不可用，则受影响的数据仅仅是此服务器到其环空间中前一台服务器（即沿逆时针方向行走遇到的第一台服务器）之间的数据，其他不会受到影响。</p>
+<p>考虑可扩展性，如果我们在系统中增加一台服务器 Server 4：</p>
+<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/6.png" alt=""></p>
+<p>此时 A、C、D 不受影响，只有 B 需要重定位到新的 Server 4。一般的，在一致性哈希算法中，如果增加一台服务器，则受影响的数据仅仅是新服务器到其环空间中前一台服务器（即沿逆时针方向行走遇到的第一台服务器）之间的数据，其他不会受到影响。</p>
+<p>综上所述，一致性哈希算法对于节点的增减都只需要定位环空间中的一小部分数据，具有较好的容错性和可扩展性。</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="&#34394;&#25311;&#33410;&#28857;">&#34394;&#25311;&#33410;&#28857;<a class="anchor-link" href="#&#34394;&#25311;&#33410;&#28857;">&#182;</a></h3><p>一致性哈希算法在服务节点太少时，容易因为节点分布不均匀而造成数据倾斜问题。假如我们系统中有两台服务器，其环分布如下：</p>
+<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/7.png" alt=""></p>
+<p>此时必然造成大量数据集中到 Server 1 上，而只有极少量数据定位到 Server 2 上。为了解决这种数据倾斜问题，一致性哈希算法引入了虚拟节点机制，即对每一个服务器计算多个哈希，每个计算结果位置都放置一个此服务节点，称为虚拟节点。</p>
+<p>具体做法可以在服务器IP或主机名的后面增加编号来实现。例如上面的情况，我们决定为每台服务器计算三个虚拟节点，于是可以分别计算 <code>"Memcached Server 1#1"</code>、<code>"Memcached Server 1#2"</code>、<code>"Memcached Server 1#3"</code>、<code>"Memcached Server 2#1"</code>、<code>"Memcached Server 2#2"</code>、<code>"Memcached Server 2#3"</code> 的哈希值，于是形成六个虚拟节点：</p>
+<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/8.png" alt=""></p>
+<p>同时数据定位算法不变，只是多了一步虚拟节点到实际节点的映射，例如定位到 <code>"Memcached Server 1#1"</code>、<code>"Memcached Server 1#2"</code>、<code>"Memcached Server 1#3"</code> 三个虚拟节点的数据均定位到 Server 1 上。这样就解决了服务节点少时数据倾斜的问题。在实际应用中，通常将虚拟节点数设置为32甚至更大，因此即使很少的服务节点也能做到相对均匀的数据分布。</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="&#30456;&#20851;&#20998;&#24067;&#24335;&#38382;&#39064;">&#30456;&#20851;&#20998;&#24067;&#24335;&#38382;&#39064;<a class="anchor-link" href="#&#30456;&#20851;&#20998;&#24067;&#24335;&#38382;&#39064;">&#182;</a></h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="&#33410;&#28857;&#26435;&#37325;">&#33410;&#28857;&#26435;&#37325;<a class="anchor-link" href="#&#33410;&#28857;&#26435;&#37325;">&#182;</a></h3><p>不同的节点处理能力可能不一致，处理能力强大的服务节点可以划分多一些虚拟节点，相应的处理能力较差的服务节点可以划分少一些虚拟节点。</p>
+<p>在 OpenStack Swift 中引入了权重（Weight）的概念来做这件事情。</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="&#25968;&#25454;&#21103;&#26412;&#65288;Replica&#65289;">&#25968;&#25454;&#21103;&#26412;&#65288;Replica&#65289;<a class="anchor-link" href="#&#25968;&#25454;&#21103;&#26412;&#65288;Replica&#65289;">&#182;</a></h3><p>为了保证数据安全，分布是系统通常会使用冗余副本（Replica）来保证数据安全。</p>
+<p>NWR 是一种在分布式存储系统中用于控制一致性级别的一种策略。每个字母的含义如下：</p>
+<ul>
+<li>N: 同一份数据的 Replica 的份数</li>
+<li>W: 更新一个数据对象的时候需要确保成功更新的份数</li>
+<li>R: 读取一个数据需要读取的 Replica 的份数</li>
+</ul>
+<p>在健壮的分布式系统中，数据的单点是不允许存在的。即线上正常存在的 Replica 数量是1的情况是非常危险的，因为一旦这个 Replica 发生错误，就可能发生数据的永久性错误。加入我们把 N 设置成为2，那么只要有一个存储节点发生损坏，就会有单点的存在，所以 N 必须大于2。N 越大，系统的维护和整体成本就越高，工业界通常把副本数量 N 设置为3。</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="&#20998;&#21306;&#65288;Zone&#65289;">&#20998;&#21306;&#65288;Zone&#65289;<a class="anchor-link" href="#&#20998;&#21306;&#65288;Zone&#65289;">&#182;</a></h3><p>考虑 CAP 定理中的分区容错性(P)，分布式系统需要一种机制对服务器的物理资源进行隔离。</p>
+<p>OpenStack Swift 中引入了 Zone 的概念对服务器进行物理隔离。所有的服务节点被分割到不同的 Zone 中，每个虚拟节点（Partition）的副本（Replica）不能放在同一个 Zone 内。</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="&#24635;&#32467;">&#24635;&#32467;<a class="anchor-link" href="#&#24635;&#32467;">&#182;</a></h2><p>目前一致性哈希基本成为了分布式系统组建的标准配置，例如 Memcached 的各种客户端都提供内置的一致性哈希支持。在企业级产品中应用非常广泛，如 Amazon DynamoDB，OpenStack Swift 等。</p>
+<p>抄一段测试代码：</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># http://www.cnblogs.com/yuxc/archive/2012/06/22/2558312.html</span>
+<span class="kn">from</span> <span class="nn">array</span> <span class="k">import</span> <span class="n">array</span>
+<span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">md5</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="k">import</span> <span class="n">shuffle</span>
+<span class="kn">from</span> <span class="nn">struct</span> <span class="k">import</span> <span class="n">unpack_from</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">time</span>
+
+<span class="k">class</span> <span class="nc">Ring</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">part2node</span><span class="p">,</span> <span class="n">relicas</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">part2node</span> <span class="o">=</span> <span class="n">part2node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">replicas</span>
+        <span class="n">partition_power</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">partition_power</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">part2node</span><span class="p">):</span>
+            <span class="n">partition_power</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">part2node</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">partition_power</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;part2node length is not an exact power of 2&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">partition_shift</span> <span class="o">=</span> <span class="mi">32</span> <span class="o">-</span> <span class="n">partition_power</span>
+
+    <span class="k">def</span> <span class="nf">get_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_id</span><span class="p">):</span>
+        <span class="n">data_id</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">data_id</span><span class="p">),</span> <span class="s1">&#39;utf8&#39;</span><span class="p">)</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">unpack_from</span><span class="p">(</span><span class="s1">&#39;&gt;I&#39;</span><span class="p">,</span> <span class="n">md5</span><span class="p">(</span><span class="n">data_id</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
+                          <span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_shift</span>
+        <span class="n">node_ids</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">[</span><span class="n">part</span><span class="p">]]</span>
+        <span class="n">zones</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span>
+        <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">):</span>
+            <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">[</span><span class="n">part</span><span class="p">]</span> <span class="ow">in</span> <span class="n">node_ids</span> <span class="ow">and</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">[</span><span class="n">part</span><span class="p">]]</span> <span class="ow">in</span> <span class="n">zones</span><span class="p">):</span>
+                <span class="n">part</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">part</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">):</span>
+                    <span class="n">part</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">node_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">[</span><span class="n">part</span><span class="p">])</span>
+            <span class="n">zones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node_ids</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">node_ids</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">build_ring</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">partition_power</span><span class="p">,</span> <span class="n">replicas</span><span class="p">):</span>
+    <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">partition_power</span>
+    <span class="n">total_weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parts</span> <span class="o">/</span> <span class="n">total_weight</span> <span class="o">*</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span>
+    <span class="n">part2node</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">partition_power</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">part2node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">part2node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+                    <span class="k">break</span>
+    <span class="n">shuffle</span><span class="p">(</span><span class="n">part2node</span><span class="p">)</span>
+    <span class="n">ring</span> <span class="o">=</span> <span class="n">Ring</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">part2node</span><span class="p">,</span> <span class="n">replicas</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f</span><span class="s1">s to build ring&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">begin</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">ring</span>
+
+<span class="k">def</span> <span class="nf">test_ring</span><span class="p">(</span><span class="n">ring</span><span class="p">,</span> <span class="n">replicas</span><span class="p">):</span>
+    <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+    <span class="n">data_id_count</span> <span class="o">=</span> <span class="mi">10000000</span>
+    <span class="n">node_counts</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">zone_counts</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">data_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data_id_count</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">get_nodes</span><span class="p">(</span><span class="n">data_id</span><span class="p">):</span>
+            <span class="n">node_counts</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">node_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">zone_counts</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;zone&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">zone_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;zone&#39;</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f</span><span class="s1">s to test ring&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">begin</span><span class="p">))</span>
+    
+    <span class="n">total_weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span>
+                             <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+    <span class="n">max_over</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">max_under</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">desired</span> <span class="o">=</span> <span class="n">data_id_count</span> <span class="o">*</span> <span class="n">replicas</span> <span class="o">*</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">total_weight</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">node_counts</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">-</span> <span class="n">desired</span>
+        <span class="k">if</span> <span class="n">diff</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">over</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">desired</span>
+            <span class="k">if</span> <span class="n">over</span> <span class="o">&gt;</span> <span class="n">max_over</span><span class="p">:</span>
+                <span class="n">max_over</span> <span class="o">=</span> <span class="n">over</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">under</span> <span class="o">=</span> <span class="o">-</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">desired</span>
+            <span class="k">if</span> <span class="n">under</span> <span class="o">&gt;</span> <span class="n">max_under</span><span class="p">:</span>
+                <span class="n">max_under</span> <span class="o">=</span> <span class="n">under</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f%%</span><span class="s1"> max node over&#39;</span> <span class="o">%</span> <span class="n">max_over</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f%%</span><span class="s1"> max node under&#39;</span> <span class="o">%</span> <span class="n">max_under</span><span class="p">)</span>
+    
+    <span class="n">max_over</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">max_under</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;zone&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="n">zone_weight</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span>
+                          <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                          <span class="k">if</span> <span class="n">n</span><span class="p">[</span><span class="s1">&#39;zone&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">zone</span><span class="p">)</span>
+        <span class="n">desired</span> <span class="o">=</span> <span class="n">data_id_count</span> <span class="o">*</span> <span class="n">replicas</span> <span class="o">*</span> <span class="n">zone_weight</span> <span class="o">/</span> <span class="n">total_weight</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">zone_counts</span><span class="p">[</span><span class="n">zone</span><span class="p">]</span> <span class="o">-</span> <span class="n">desired</span>
+        <span class="k">if</span> <span class="n">diff</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">over</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">desired</span>
+            <span class="k">if</span> <span class="n">over</span> <span class="o">&gt;</span> <span class="n">max_over</span><span class="p">:</span>
+                <span class="n">max_over</span> <span class="o">=</span> <span class="n">over</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">under</span> <span class="o">=</span> <span class="o">-</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">desired</span>
+            <span class="k">if</span> <span class="n">under</span> <span class="o">&gt;</span> <span class="n">max_under</span><span class="p">:</span>
+                <span class="n">max_under</span> <span class="o">=</span> <span class="n">under</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f%%</span><span class="s1"> max zone over&#39;</span> <span class="o">%</span> <span class="n">max_over</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f%%</span><span class="s1"> max zone under&#39;</span> <span class="o">%</span> <span class="n">max_under</span><span class="p">)</span>
+
+
+<span class="n">partition_power</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">replicas</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">node_count</span> <span class="o">=</span> <span class="mi">256</span>
+<span class="n">zone_count</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">nodes</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">node_count</span><span class="p">:</span>
+    <span class="n">zone</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">zone</span> <span class="o">&lt;</span> <span class="n">zone_count</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">node_count</span><span class="p">:</span>
+        <span class="n">node_id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
+        <span class="n">nodes</span><span class="p">[</span><span class="n">node_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">node_id</span><span class="p">,</span> <span class="s1">&#39;zone&#39;</span><span class="p">:</span> <span class="n">zone</span><span class="p">,</span>
+                          <span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="n">node_id</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)}</span>
+        <span class="n">zone</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="n">ring</span> <span class="o">=</span> <span class="n">build_ring</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">partition_power</span><span class="p">,</span> <span class="n">replicas</span><span class="p">)</span>
+<span class="n">test_ring</span><span class="p">(</span><span class="n">ring</span><span class="p">,</span> <span class="n">replicas</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt"></div>
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>1.15s to build ring
+81.58s to test ring
+1.38% max node over
+1.67% max node under
+0.23% max zone over
+0.21% max zone under
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<hr>
+<style>
+div.prompt.input_prompt {display: none;}
+</style>
+</div>
+</div>
+</div>
+ 
+
