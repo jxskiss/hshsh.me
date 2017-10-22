@@ -3,6 +3,11 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>http://hshsh.me/post/2017-10-22-single-file-vue-webpack/</loc>
+    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>http://hshsh.me/post/2017-10-21-consistent-hashing/</loc>
     <lastmod>2017-10-21T23:00:00+08:00</lastmod>
   </url>
@@ -178,6 +183,12 @@
   </url>
   
   <url>
+    <loc>http://hshsh.me/tags/frontend/</loc>
+    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>http://hshsh.me/tags/hugo/</loc>
     <lastmod>2016-04-24T11:36:14+08:00</lastmod>
     <priority>0</priority>
@@ -245,13 +256,13 @@
   
   <url>
     <loc>http://hshsh.me/post/</loc>
-    <lastmod>2017-10-21T23:00:00+08:00</lastmod>
+    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>http://hshsh.me/tags/programming/</loc>
-    <lastmod>2017-10-21T23:00:00+08:00</lastmod>
+    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -316,6 +327,18 @@
   </url>
   
   <url>
+    <loc>http://hshsh.me/tags/vuejs/</loc>
+    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/webpack/</loc>
+    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>http://hshsh.me/tags/windows/</loc>
     <lastmod>2016-12-22T23:30:00+08:00</lastmod>
     <priority>0</priority>
@@ -329,7 +352,7 @@
   
   <url>
     <loc>http://hshsh.me/</loc>
-    <lastmod>2017-10-21T23:00:00+08:00</lastmod>
+    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
