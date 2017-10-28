@@ -165,11 +165,38 @@
     </item>
     
     <item>
+      <title>Nginx</title>
+      <link>http://hshsh.me/tags/nginx/</link>
+      <pubDate>Sun, 29 Oct 2017 01:40:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/tags/nginx/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>Ntp</title>
       <link>http://hshsh.me/tags/ntp/</link>
       <pubDate>Sat, 30 Jul 2016 07:30:00 +0800</pubDate>
       
       <guid>http://hshsh.me/tags/ntp/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Openresty</title>
+      <link>http://hshsh.me/tags/openresty/</link>
+      <pubDate>Sun, 29 Oct 2017 01:40:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/tags/openresty/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Ops</title>
+      <link>http://hshsh.me/tags/ops/</link>
+      <pubDate>Sun, 29 Oct 2017 01:40:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/tags/ops/</guid>
       <description></description>
     </item>
     
@@ -284,7 +311,7 @@
     <item>
       <title>Tricks</title>
       <link>http://hshsh.me/tags/tricks/</link>
-      <pubDate>Tue, 13 Jun 2017 23:00:00 +0800</pubDate>
+      <pubDate>Sun, 29 Oct 2017 01:40:00 +0800</pubDate>
       
       <guid>http://hshsh.me/tags/tricks/</guid>
       <description></description>

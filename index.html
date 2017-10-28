@@ -58,6 +58,511 @@
   
   <div class="post">
     <h1 class="post-title">
+      <a href="http://hshsh.me/post/2017-10-29-openresty-dynamic-upstreams/">
+        用OpenResty构建动态代理服务
+      </a>
+    </h1>
+
+    <span class="post-date">Sun, Oct 29, 2017</span>
+
+    <p>最近的项目使用了前后端分离的开发模式，前后端都在同一台机器上开发，需要对前后端开发配置联调服务。解决这个问题方法很多，Nginx/OpenResty 是其中一种。</p>
+
+<p>后来又有其他项目的前端后端同学也在这台服务器上做开发。</p>
+
+<p>后来，这台服务器绑定了多个域名，要对多个域名、多个端口做解析。</p>
+
+<p>再后来，其中一个项目的后端开始以微服务的方式开发，对不同路径要代理到不同的后端开发端口上去。</p>
+
+<p>既然已经走了这么远，索性再扩展一下，除了支持代理到端口，再加上指定文件夹静态文件服务呗，于是有了下面的配置。</p>
+
+<p>功能列表：</p>
+
+<ol>
+<li>一个端口支持多域名，访问不同域名可以转发到不同上游服务</li>
+<li>一个域名下，可以按照项目分组，不同项目可以配置不同后端服务</li>
+<li>一个项目可以根据路由配置多个对应后端服务</li>
+<li>支持不带后端路由的直接转发</li>
+<li>支持指定文件夹静态文件服务</li>
+<li>上述一切都可以通过接口在线配置，不需要修改 Nginx/OpenResty 配置文件，并且自带接口文档</li>
+</ol>
+
+<p>依赖：OpenResty，安装请参考<a href="https://openresty.org/cn/installation.html">官方文档</a>。</p>
+
+<pre><code class="language-conf"># #### OpenResty dynamic upstreams ####
+
+# 配置表，key 有三种格式
+#   1. example.domain.name:port_number
+#      value 有三种格式：
+#      - upstream_ip:port
+#      - upstream_ip:port,project
+#      - /absolute/path/to/document/root
+#   2. example.domain.name:project_name
+#      value JSON格式的路由表
+#   2. kv:runtime_variable_name
+#      value 所有请求共享的运行时变量
+lua_shared_dict dyn_registry 1m;
+
+server {
+    # 把要开发的端口全部注册在这里，一行一个，比如 9000 - 9009
+    listen       9000;
+    listen       9001;
+    # listen     ...
+    listen       9008;
+    listen       9009;
+
+    # 接受请求的域名，全部写在一行，用空格分开
+    # 上面注册的端口对所有域名都可用
+    server_name  dyn1.hshsh.me dyn2.hshsh.me;
+
+    access_log   /path/to/access_or_dynamic.log main;
+    error_log    /path/to/error_or_dynamic.log notice;
+
+    default_type  application/json;
+
+    set $dyn_conf_file &quot;/path/to/or-dynamic.json&quot;;
+
+    # 无论是配置请求，还是代理请求，第一个请求都需要触发配置加载，
+    # 因此这两个 set 指令不能放在 location 里面，必须放在 server 中
+    set $upstream &quot;&quot;;
+    set_by_lua_block $docroot {
+        local cjson = require &quot;cjson&quot;
+        local registry = ngx.shared.dyn_registry
+
+        -- 配置成请求触发加载可以不用写全局的 init_by_lua* 指令，
+        -- 方便与其他 OpenResty 服务集成
+        if not registry:get(&quot;kv:loaded&quot;) then
+            local file, err = io.open(ngx.var.dyn_conf_file, &quot;rb&quot;)
+            if not file then
+                ngx.log(ngx.ERR, &quot;error opening config file: &quot;, err)
+            else
+                local contents = file:read(&quot;*all&quot;)
+                file:close()
+                local suc, config = pcall(cjson.decode, contents)
+                if not suc then
+                    ngx.log(ngx.ERR, &quot;error decoding config file&quot;)
+                else
+                    for k, v in pairs(config) do
+                        -- 第一种 key, domain:port
+                        if k:match(&quot;:%d+$&quot;) then
+                            registry:set(k, v)
+                        -- 第二种 key, domain:project
+                        else
+                            registry:set(k, cjson.encode(v))
+                        end
+                    end
+                end
+            end
+            registry:set(&quot;kv:loaded&quot;, &quot;true&quot;)
+        end
+
+        -- 对于配置请求不需要查配置，配置接口可以在所有域名和端口上访问
+        if ngx.re.match(ngx.var.uri, &quot;^/or-dynamic/&quot;) then
+            return &quot;&quot;
+        end
+
+        -- 根据域名和端口查配置，如果查不到则是没有注册，直接返回
+        -- 在 / location 中会返回 404，set 指令中不能结束请求
+        local http_host = ngx.var.http_host
+        local upstream = registry:get(http_host)
+        if not upstream then
+            return &quot;&quot;
+        end
+
+        -- upstream_ip:port, 项目无关，没有后端路由的直接代理
+        if upstream:match(&quot;:%d+$&quot;) then
+            ngx.var.upstream = upstream
+            return &quot;&quot;
+        end
+
+        -- 没有逗号，文档根目录路径，所以不支持配置带有都好的路径
+        if not upstream:match(&quot;,&quot;) then
+            return upstream
+        end
+
+        -- upstream_ip:port,project, 项目前端配置
+        -- 根据路由表确定是否需要转发后端服务
+        local proj, routes, uri, dest, m, err
+        m, err = ngx.re.match(upstream, [=[([^,]+),([^,]+)]=])
+        upstream, proj = m[1], m[2]
+        routes = cjson.decode(registry:get(ngx.var.host .. &quot;:&quot; .. proj))
+        for uri, dest in pairs(routes) do
+            if dest and ngx.re.match(ngx.var.uri, uri) then
+                upstream = dest
+                break
+            end
+        end
+        ngx.var.upstream = upstream
+        return &quot;&quot;
+    }
+
+    # 方便开发调试，给每个请求加上 upstream 和 docroot 的响应头
+    header_filter_by_lua_block {
+        ngx.header[&quot;OR-Dyn-Upstream&quot;] = ngx.var.upstream
+        ngx.header[&quot;OR-Dyn-Docroot&quot;] = ngx.var.docroot
+    }
+
+    location / {
+        proxy_set_header Host $Host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+
+        # upstream 需要在处理 docroot 之前处理, if is evil
+        if ($upstream != &quot;&quot;) {
+            proxy_pass http://$upstream;
+            break;
+        }
+
+        # upstream 没有命中，docroot 也没有命中，则没有注册，可以洗洗睡了
+        if ($docroot = &quot;&quot;) {
+            return 404;
+        }
+
+        root $docroot;
+        index index.html index.htm;
+
+        # 对于静态文件服务，如果需要支持 history 模式路由的前端单页面应用，取消注释下面这一行
+        # try_files $uri $uri/ /index.html =404;
+
+        error_page   500 502 503 504  @5xx;
+    }
+
+    # 方便开发调试，把抛 5xx 错误的 upstream 直接显示在页面上
+    location @5xx {
+        default_type text/plain;
+        content_by_lua_block {
+            ngx.say(&quot;oops: &quot; .. ngx.var.upstream)
+        }
+    }
+
+    # 当前配置查询接口
+    location = /or-dynamic/ {
+        content_by_lua_block {
+            local cjson = require &quot;cjson&quot;
+            local registry = ngx.shared.dyn_registry
+            
+            -- 自包含的接口文档
+            local config = {
+                help = {
+                    [ &quot;parameters&quot; ] = {
+                        host = &quot;域名, eg: example.domain.name&quot;,
+                        port = &quot;端口号, eg: 9001&quot;,
+                        upstream = &quot;上游服务, eg: 127.0.0.1:6666&quot;,
+                        docroot = &quot;静态文件根目录, eg: /absolute/path/to/document/root&quot;,
+                        uri = &quot;后端服务路由，支持正则表达式, eg: ^/api/v\d+/&quot;
+                    },
+                    -- 配置项目无关的直接代理
+                    [ &quot;direct proxy&quot; ] = {
+                        set = &quot;/or-dynamic/set?host=&amp;port=&amp;upstream=&quot;,
+                        del = &quot;/or-dynamic/del?host=&amp;port=&quot;
+                    },
+                    -- 配置静态文件服务根目录
+                    [ &quot;document root&quot; ] = {
+                        set = &quot;/or-dynamic/set?host=&amp;port=&amp;docroot=&quot;,
+                        del = &quot;/or-dynamic/del?host=&amp;port=&quot;
+                    },
+                    -- 配置项目前端代理
+                    [ &quot;project frontend&quot; ] = {
+                        set = &quot;/or-dynamic/set?host=&amp;proj=&amp;port=&amp;upstream=&quot;,
+                        del = &quot;/or-dynamic/del?host=&amp;port=&quot;
+                    },
+                    -- 配置项目后端路由
+                    [ &quot;project backend&quot; ] = {
+                        set = &quot;/or-dynamic/set?host=&amp;proj=&amp;uri=&amp;upstream=&quot;,
+                        del = &quot;/or-dynamic/del?host=&amp;proj=&amp;uri=&quot;
+                    }
+                }
+            }
+
+            # 按照域名和项目分组
+            for _, k in ipairs(registry:get_keys()) do
+                if not k:match(&quot;^kv:&quot;) then
+                    local v = registry:get(k)
+                    local req_type, host, proj, port, upstream, docroot, routes, m, err
+                    m, err = ngx.re.match(k, [=[^([^:]+):(\d+)$]=])
+                    if m then  -- host:port
+                        host, port = m[1], m[2]
+                        if v:match(&quot;:%d+$&quot;) then  -- direct proxy
+                            req_type = &quot;proxy&quot;
+                            upstream = v
+                        elseif not v:match(&quot;,&quot;) then  -- document root
+                            req_type = &quot;docroot&quot;
+                            docroot = v
+                        else  -- project frontend
+                            req_type = &quot;frontend&quot;
+                            m, err = ngx.re.match(v, [=[^([^,]+),([^,]+)$]=])
+                            upstream, proj = m[1], m[2]
+                        end
+                    else  -- project backend routes
+                        req_type = &quot;backend&quot;
+                        m, err = ngx.re.match(k, [=[([^:]+):([^:]+)]=])
+                        host, proj = m[1], m[2]
+                    end
+
+                    if not config[host] then
+                        config[host] = {}
+                    end
+                    if req_type == &quot;docroot&quot; then
+                        config[host][port] = docroot
+                    elseif req_type == &quot;proxy&quot; then
+                        config[host][port] = upstream
+                    else  -- project frontend or backend
+                        if not config[host][proj] then
+                            config[host][proj] = {}
+                        end
+                        if req_type == &quot;frontend&quot; then
+                            config[host][proj][port] = upstream
+                        else
+                            config[host][proj][&quot;routes&quot;] = cjson.decode(v)
+                        end
+                    end
+                end
+            end
+            ngx.say(cjson.encode(config))
+        }
+    }
+
+    # 新增、修改配置接口
+    location = /or-dynamic/set {
+        content_by_lua_block {
+            local cjson = require &quot;cjson&quot;
+            local registry = ngx.shared.dyn_registry
+            local args = ngx.req.get_uri_args()
+            local is_valid = true
+            local req_type, r_key, r_value, err
+
+            -- host is required for requests of any type
+            if not args or not args.host or args.host:len() == 0 then
+                is_valid = false
+                err = &quot;parameter host required&quot;
+            end
+
+            -- project frontend: host, proj, port, upstream
+            -- project backend: host, proj, uri, upstream
+            -- direct proxy: host, port, upstream
+            -- document root: host, port, docroot
+            if is_valid and (not req_type) and args.port and args.port:len() &gt; 0 then
+                r_key = args.host .. &quot;:&quot; .. args.port
+                if args.upstream and args.upstream:len() &gt; 0 then
+                    if args.proj and args.proj:len() &gt; 0 then
+                        req_type = &quot;frontend&quot;
+                        r_value = args.upstream .. &quot;,&quot; .. args.proj
+                    else
+                        req_type = &quot;proxy&quot;
+                        r_value = args.upstream
+                    end
+                elseif args.docroot and args.docroot:len() &gt; 0 then
+                    req_type = &quot;docroot&quot;
+                    r_value = args.docroot
+                end
+            end
+            if is_valid and (not req_type) and args.uri and args.uri:len() &gt; 0 and
+                    args.upstream and args.upstream:len() &gt; 0 and
+                    args.proj and args.proj:len() &gt; 0 then
+                req_type = &quot;backend&quot;
+                r_key = args.host .. &quot;:&quot; .. args.proj
+                local routes = cjson.decode(registry:get(routes_key) or &quot;{}&quot;)
+                routes[args.uri] = args.upstream
+                r_value = cjson.encode(routes)
+            end
+
+            if req_type then
+                registry:set(r_key, r_value)
+                local res = ngx.location.capture(&quot;/or-dynamic/_save&quot;)
+                if res.status ~= ngx.HTTP_OK then
+                    err = &quot;failed writing config file&quot;
+                else
+                    ngx.redirect(&quot;/or-dynamic/&quot;)
+                end
+            end
+            ngx.say(cjson.encode({error = err or &quot;invalid or missing parameters&quot;}))
+        }
+    }
+
+    # 删除配置接口
+    location = /or-dynamic/del {
+        content_by_lua_block {
+            local cjson = require &quot;cjson&quot;
+            local args = ngx.req.get_uri_args()
+            if (not args or not args.host or args.host:len() == 0 or
+                    ((not args.port or args.port:len() == 0) and
+                     (not args.proj or args.proj.len() == 0 or
+                      not args.uri or args.uri:len() == 0))
+                ) then
+                ngx.say(cjson.encode({error = &quot;missing parameters&quot;}))
+                return
+            end
+
+            local registry = ngx.shared.dyn_registry
+            if args.port and args.port:len() &gt; 0 then
+                registry:delete(args.host .. &quot;:&quot; .. args.port)
+            else
+                local routes_key = args.host .. &quot;:&quot; .. args.proj
+                local routes = cjson.decode(registry:get(routes_key) or &quot;{}&quot;)
+                local new = {}
+                for uri, dest in pairs(routes) do
+                    if dest and uri ~= args.uri then
+                        new[uri] = dest
+                    end
+                end
+                registry:set(routes_key, cjson.encode(new))
+            end
+
+            local res = ngx.location.capture(&quot;/or-dynamic/_save&quot;)
+            if res.status ~= ngx.HTTP_OK then
+                ngx.say(cjson.encode({error = &quot;failed writing config file&quot;}))
+            else
+                ngx.redirect(&quot;/or-dynamic/&quot;)
+            end
+        }
+    }
+
+    # 保存当前配置表到配置文件
+    # internal 类型的 location 专门用于内部请求逻辑，外部访问不到
+    location = /or-dynamic/_save {
+        internal;
+        content_by_lua_block {
+            local cjson = require &quot;cjson&quot;
+            local registry = ngx.shared.dyn_registry
+            local config = {}
+
+            for _, k in ipairs(registry:get_keys()) do
+                -- 不保存运行时变量，只保存配置内容
+                if not k:match(&quot;^kv:&quot;) then
+                    local v = registry:get(k)
+                    if ngx.re.match(k, [=[\:\d+$]=]) then  -- host:port
+                        config[k] = v
+                    else
+                        config[k] = cjson.decode(v)
+                    end
+                end
+            end
+
+            -- assume we don't need lock to access config file
+            local file, err = io.open(ngx.var.dyn_conf_file, &quot;w&quot;)
+            if file then
+                file:write(cjson.encode(config))
+                file:close()
+                ngx.print(&quot;ok&quot;)
+            else
+                ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+                ngx.log(ngx.ERR, &quot;failed to save config: &quot;, err)
+                ngx.say(err)
+            end
+        }
+    }
+
+}
+</code></pre>
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
+      <a href="http://hshsh.me/post/2017-10-28-build-static-openresty/">
+        静态编译OpenResty
+      </a>
+    </h1>
+
+    <span class="post-date">Sat, Oct 28, 2017</span>
+
+    <p>有时候会需要静态编译OpenResty。</p>
+
+<p>参考资料：<a href="http://www.codingblog.cn/blog/9579.html">http://www.codingblog.cn/blog/9579.html</a>。</p>
+
+<p>当前使用的编译脚本。Ubuntu 16.04 测试通过，需要 <code>build-essential</code> 包，使用 <code>sudo apt-get install build-essential</code> 安装。</p>
+
+<pre><code class="language-bash">#!/bin/bash
+
+set -e
+
+OPENRESTY_VER=1.11.2.5
+LUAJIT_BUNDLE_VER=&quot;2.1-20170808&quot;
+wget https://openresty.org/download/openresty-${OPENRESTY_VER}.tar.gz
+tar -xzf openresty-${OPENRESTY_VER}.tar.gz
+
+cd openresty-${OPENRESTY_VER}
+
+cd bundle/LuaJIT-${LUAJIT_BUNDLE_VER}
+
+make -j8
+make install PREFIX=`pwd`
+LUAROOT=`pwd`
+rm -rf lib/*.so*
+cd ../..
+
+mkdir -p extra-libs
+cd extra-libs
+
+PCRE_VER=8.39
+rm -rf pcre-*
+echo -n &quot;downloading pcre-$PCRE_VER...&quot;
+wget -O pcre-$PCRE_VER.tar.bz2 &quot;http://downloads.sourceforge.net/project/pcre/pcre/$PCRE_VER/pcre-$PCRE_VER.tar.bz2&quot;
+echo &quot;ok&quot;
+tar -xjf pcre-$PCRE_VER.tar.bz2
+
+
+wget -O pcre-8.39.tar.bz2 &quot;http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.bz2
+
+ZLIB_VER=1.2.11
+echo -n &quot;downloading zlib-$ZLIB_VER...&quot;
+wget -O zlib-$ZLIB_VER.tar.gz http://zlib.net/zlib-$ZLIB_VER.tar.gz
+echo &quot;ok&quot;
+tar -xzf zlib-$ZLIB_VER.tar.gz
+
+rm -rf openssl-*
+rm -rf OpenSSL_1_0_1t*
+echo -n &quot;downloading OpenSSL_1_0_1t...&quot;
+wget https://github.com/openssl/openssl/archive/OpenSSL_1_0_1t.tar.gz
+echo &quot;ok&quot;
+tar -xzf OpenSSL_1_0_1t.tar.gz
+
+cd ..
+
+OPENRESTY_PREFIX=/opt/openresty
+NGINX_TEMP_PREFIX=$OPENRESTY_PREFIX/temp
+./configure -j8 \
+    --prefix=$OPENRESTY_PREFIX \
+    --http-client-body-temp-path=$NGINX_TEMP_PREFIX/client_body \
+    --http-proxy-temp-path=$NGINX_TEMP_PREFIX/proxy \
+    --http-fastcgi-temp-path=$NGINX_TEMP_PREFIX/fastcgi \
+    --http-uwsgi-temp-path=$NGINX_TEMP_PREFIX/uwsgi \
+    --http-scgi-temp-path=$NGINX_TEMP_PREFIX/scgi \
+    --with-luajit=$LUAROOT \
+    --with-http_ssl_module \
+    --with-http_realip_module \
+    --with-http_addition_module \
+    --with-http_sub_module \
+    --with-http_dav_module \
+    --with-http_flv_module \
+    --with-http_mp4_module \
+    --with-http_gunzip_module \
+    --with-http_gzip_static_module \
+    --with-http_auth_request_module \
+    --with-http_random_index_module \
+    --with-http_secure_link_module \
+    --with-http_slice_module \
+    --with-http_stub_status_module \
+    --with-http_v2_module \
+    --with-mail \
+    --with-mail_ssl_module \
+    --with-stream \
+    --with-stream_ssl_module \
+    --with-ipv6 \
+    --with-pcre-jit \
+    --with-pcre=./extra-libs/pcre-$PCRE_VER \
+    --with-zlib=./extra-libs/zlib-$ZLIB_VER \
+    --with-openssl=./extra-libs/openssl-OpenSSL_1_0_1t
+
+make -j8
+
+cp build/nginx-1.11.2/objs/nginx ./openresty
+# make install
+</code></pre>
+
+  </div>
+  
+  <div class="post">
+    <h1 class="post-title">
       <a href="http://hshsh.me/post/2017-10-22-single-file-vue-webpack/">
         单文件 Vue Webpack 配置
       </a>
@@ -701,1100 +1206,6 @@ module.exports = (options = {}) =&gt; {
     &quot;sampleUrl&quot;: &quot;http://localhost:8080/api&quot;
   }
 }
-</code></pre>
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2017-10-21-consistent-hashing/">
-        一致性哈希算法学习笔记
-      </a>
-    </h1>
-
-    <span class="post-date">Sat, Oct 21, 2017</span>
-
-    <div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>一致性哈希算法（Consistent Hashing）学习笔记。</p>
-<p>主要内容从参考资料中摘抄，版权归原作者所有。</p>
-<p>参考资料：</p>
-<ul>
-<li><a href="http://blog.codinglabs.org/articles/consistent-hashing.html">一致性哈希算法及其在分布式系统中的应用</a></li>
-<li><a href="http://www.cnblogs.com/yuxc/archive/2012/06/22/2558312.html">深入云存储系统Swift核心组件：Ring实现原理剖析</a></li>
-</ul>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="&#20998;&#24067;&#24335;&#32531;&#23384;&#38382;&#39064;">&#20998;&#24067;&#24335;&#32531;&#23384;&#38382;&#39064;<a class="anchor-link" href="#&#20998;&#24067;&#24335;&#32531;&#23384;&#38382;&#39064;">&#182;</a></h2><p>假设我们有一个网站，最近发现随着流量增加，服务器压力越来越大，之前直接读写数据库的方式不太给力了，于是我们想引入 Memcached 作为缓存机制。现在我们一共有三台机器可以作为 Memcached 服务器，如下图所示。</p>
-<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/1.png" alt=""></p>
-<p>很显然，最简单的策略是将每一次 Memcached 请求随机发送到一台 Memcached 服务器，但是这种策略可能会带来两个问题：</p>
-<ol>
-<li>同一份数据可能被存在不同的机器上而造成数据冗余；</li>
-<li>有可能某数据已经被缓存但是访问却没有命中，因为无法保证对相同 key 的访问都被发送到相同的服务器。</li>
-</ol>
-<p>因此，随机策略无论是时间效率还是空间效率都非常不好。</p>
-<p>要解决上述问题需要做到如下一点：<strong>保证对相同 key 的访问会被发送到相同的服务器</strong>。很多方法可以实现这一点，最常用的方法是计算哈希。例如对于每次访问，可以按如下算法计算哈希值：</p>
-
-<pre><code>h = Hash(key) % 3
-
-</code></pre>
-<p>其中，Hash 是一个从字符串到正整数的哈希映射函数。这样，如果我们将 Memcached Server 分别编号为 0、1、2，那么就可以根据上述算式和 key 计算出服务器编号 h，然后去访问。</p>
-<p>这个方法虽然解决了上面提到的两个问题，但是存在一些其他的问题，如果将上述方法抽象：</p>
-
-<pre><code>h = Hash(key) % N
-
-</code></pre>
-<p>这个算式计算每个 key 的请求应该被发送到哪台服务器，其中 N 为服务器的数量，并且服务器按照 0..(N-1) 进行编号。</p>
-<p>这个算法的问题在于容错性和扩展性不好。所谓容错性是指当系统中某一个或几个服务器变得不可用时，整个系统是否可以正确高效运行；而扩展性是指当加入新的服务器后，整个系统是否可以正确高效运行。</p>
-<p>现在假设有一台服务器宕机了，那么为了填补空缺，要将宕机的服务器从编号列表中移除，后面的服务器按顺序前移一位并将其编号值减一，此时每个 key 就要按 <code>h = Hash(key) % (N-1)</code> 重新计算；同样，如果新增了一台服务器，虽然原有服务器编号不用改变，但是要按 <code>h = Hash(key) % (N+1)</code> 重新计算哈希值。因此系统中一旦有服务器变更，大量的 key 会被重定位到不同有服务器从而造成大量的缓存不命中。而这种情况在分布式系统中是非常糟糕的。</p>
-<p>一个设计良好的分布式哈希方案应该具有良好的单调性，即服务节点的增减不会造成大量哈希值重定位。一致性哈希算法就是这样一种哈希方案。</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="&#19968;&#33268;&#24615;&#21704;&#24076;&#31639;&#27861;">&#19968;&#33268;&#24615;&#21704;&#24076;&#31639;&#27861;<a class="anchor-link" href="#&#19968;&#33268;&#24615;&#21704;&#24076;&#31639;&#27861;">&#182;</a></h2>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="&#31639;&#27861;&#31616;&#36848;">&#31639;&#27861;&#31616;&#36848;<a class="anchor-link" href="#&#31639;&#27861;&#31616;&#36848;">&#182;</a></h3><p>一致性哈希算法（Consistent Hashing）最早在论文《<a href="https://www.cs.princeton.edu/courses/archive/fall09/cos518/papers/chash.pdf">Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web</a>》中被提出。简单来说，一致性哈希将整个哈希值空间组织成一个虚拟的圆环，如假设某哈希函数 H 的值空间为 0..2<sup>32</sup>-1（即哈希值是一个32位无符号整数），整个哈希空间环如下图：</p>
-<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/2.png" alt=""></p>
-<p>整个空间按顺时针方向组织。0 和 2<sup>32</sup>-1 在零点钟方向重合。</p>
-<p>下一步将各个服务器使用哈希函数 H 计算一个哈希，具体可以选择服务器的IP或主机名作为关键字进行哈希，这样每台机器就能确定其在哈希环上的位置，这里假设将上文中三台服务器使用IP地址哈希后再环空间的位置如下：</p>
-<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/3.png" alt=""></p>
-<p>接下来使用如下算法定位数据访问到相应服务器：将数据 key 使用相同的哈希函数 H 计算出哈希值 h，根据 h 确定此数据在环上的位置，从此位置沿环顺时针“行走”，第一台遇到的服务器就是其应该定位到的服务器。</p>
-<p>例如我们有 A、B、C、D 四个数据对象，经过哈希计算后，在环空间的位置如下：</p>
-<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/4.png" alt=""></p>
-<p>根据一致性哈希算法，数据 A 会被定位到 Server 1 上，D 被定为到 Server 2 上，而 B、C 分别被定为到 Server 2 上。</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="&#23481;&#38169;&#24615;&#19982;&#21487;&#25193;&#23637;&#24615;&#20998;&#26512;">&#23481;&#38169;&#24615;&#19982;&#21487;&#25193;&#23637;&#24615;&#20998;&#26512;<a class="anchor-link" href="#&#23481;&#38169;&#24615;&#19982;&#21487;&#25193;&#23637;&#24615;&#20998;&#26512;">&#182;</a></h3><p>下面分析一致性哈希算法的容错性和可扩展性。现假设 Server 3 宕机了：</p>
-<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/5.png" alt=""></p>
-<p>可以看到此时 A、B、C 不会受到影响，只有数据 D 被重定位到 Serverr 2。一般的，在一致性哈希算法中，如果一台服务器不可用，则受影响的数据仅仅是此服务器到其环空间中前一台服务器（即沿逆时针方向行走遇到的第一台服务器）之间的数据，其他不会受到影响。</p>
-<p>考虑可扩展性，如果我们在系统中增加一台服务器 Server 4：</p>
-<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/6.png" alt=""></p>
-<p>此时 A、C、D 不受影响，只有 B 需要重定位到新的 Server 4。一般的，在一致性哈希算法中，如果增加一台服务器，则受影响的数据仅仅是新服务器到其环空间中前一台服务器（即沿逆时针方向行走遇到的第一台服务器）之间的数据，其他不会受到影响。</p>
-<p>综上所述，一致性哈希算法对于节点的增减都只需要定位环空间中的一小部分数据，具有较好的容错性和可扩展性。</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="&#34394;&#25311;&#33410;&#28857;">&#34394;&#25311;&#33410;&#28857;<a class="anchor-link" href="#&#34394;&#25311;&#33410;&#28857;">&#182;</a></h3><p>一致性哈希算法在服务节点太少时，容易因为节点分布不均匀而造成数据倾斜问题。假如我们系统中有两台服务器，其环分布如下：</p>
-<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/7.png" alt=""></p>
-<p>此时必然造成大量数据集中到 Server 1 上，而只有极少量数据定位到 Server 2 上。为了解决这种数据倾斜问题，一致性哈希算法引入了虚拟节点机制，即对每一个服务器计算多个哈希，每个计算结果位置都放置一个此服务节点，称为虚拟节点。</p>
-<p>具体做法可以在服务器IP或主机名的后面增加编号来实现。例如上面的情况，我们决定为每台服务器计算三个虚拟节点，于是可以分别计算 <code>"Memcached Server 1#1"</code>、<code>"Memcached Server 1#2"</code>、<code>"Memcached Server 1#3"</code>、<code>"Memcached Server 2#1"</code>、<code>"Memcached Server 2#2"</code>、<code>"Memcached Server 2#3"</code> 的哈希值，于是形成六个虚拟节点：</p>
-<p><img src="http://blog.codinglabs.org/uploads/pictures/consistent-hashing/8.png" alt=""></p>
-<p>同时数据定位算法不变，只是多了一步虚拟节点到实际节点的映射，例如定位到 <code>"Memcached Server 1#1"</code>、<code>"Memcached Server 1#2"</code>、<code>"Memcached Server 1#3"</code> 三个虚拟节点的数据均定位到 Server 1 上。这样就解决了服务节点少时数据倾斜的问题。在实际应用中，通常将虚拟节点数设置为32甚至更大，因此即使很少的服务节点也能做到相对均匀的数据分布。</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="&#30456;&#20851;&#20998;&#24067;&#24335;&#38382;&#39064;">&#30456;&#20851;&#20998;&#24067;&#24335;&#38382;&#39064;<a class="anchor-link" href="#&#30456;&#20851;&#20998;&#24067;&#24335;&#38382;&#39064;">&#182;</a></h2>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="&#33410;&#28857;&#26435;&#37325;">&#33410;&#28857;&#26435;&#37325;<a class="anchor-link" href="#&#33410;&#28857;&#26435;&#37325;">&#182;</a></h3><p>不同的节点处理能力可能不一致，处理能力强大的服务节点可以划分多一些虚拟节点，相应的处理能力较差的服务节点可以划分少一些虚拟节点。</p>
-<p>在 OpenStack Swift 中引入了权重（Weight）的概念来做这件事情。</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="&#25968;&#25454;&#21103;&#26412;&#65288;Replica&#65289;">&#25968;&#25454;&#21103;&#26412;&#65288;Replica&#65289;<a class="anchor-link" href="#&#25968;&#25454;&#21103;&#26412;&#65288;Replica&#65289;">&#182;</a></h3><p>为了保证数据安全，分布是系统通常会使用冗余副本（Replica）来保证数据安全。</p>
-<p>NWR 是一种在分布式存储系统中用于控制一致性级别的一种策略。每个字母的含义如下：</p>
-<ul>
-<li>N: 同一份数据的 Replica 的份数</li>
-<li>W: 更新一个数据对象的时候需要确保成功更新的份数</li>
-<li>R: 读取一个数据需要读取的 Replica 的份数</li>
-</ul>
-<p>在健壮的分布式系统中，数据的单点是不允许存在的。即线上正常存在的 Replica 数量是1的情况是非常危险的，因为一旦这个 Replica 发生错误，就可能发生数据的永久性错误。加入我们把 N 设置成为2，那么只要有一个存储节点发生损坏，就会有单点的存在，所以 N 必须大于2。N 越大，系统的维护和整体成本就越高，工业界通常把副本数量 N 设置为3。</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="&#20998;&#21306;&#65288;Zone&#65289;">&#20998;&#21306;&#65288;Zone&#65289;<a class="anchor-link" href="#&#20998;&#21306;&#65288;Zone&#65289;">&#182;</a></h3><p>考虑 CAP 定理中的分区容错性(P)，分布式系统需要一种机制对服务器的物理资源进行隔离。</p>
-<p>OpenStack Swift 中引入了 Zone 的概念对服务器进行物理隔离。所有的服务节点被分割到不同的 Zone 中，每个虚拟节点（Partition）的副本（Replica）不能放在同一个 Zone 内。</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="&#24635;&#32467;">&#24635;&#32467;<a class="anchor-link" href="#&#24635;&#32467;">&#182;</a></h2><p>目前一致性哈希基本成为了分布式系统组建的标准配置，例如 Memcached 的各种客户端都提供内置的一致性哈希支持。在企业级产品中应用非常广泛，如 Amazon DynamoDB，OpenStack Swift 等。</p>
-<p>抄一段测试代码：</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[1]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># http://www.cnblogs.com/yuxc/archive/2012/06/22/2558312.html</span>
-<span class="kn">from</span> <span class="nn">array</span> <span class="k">import</span> <span class="n">array</span>
-<span class="kn">from</span> <span class="nn">hashlib</span> <span class="k">import</span> <span class="n">md5</span>
-<span class="kn">from</span> <span class="nn">random</span> <span class="k">import</span> <span class="n">shuffle</span>
-<span class="kn">from</span> <span class="nn">struct</span> <span class="k">import</span> <span class="n">unpack_from</span>
-<span class="kn">from</span> <span class="nn">time</span> <span class="k">import</span> <span class="n">time</span>
-
-<span class="k">class</span> <span class="nc">Ring</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">part2node</span><span class="p">,</span> <span class="n">relicas</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">part2node</span> <span class="o">=</span> <span class="n">part2node</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">replicas</span>
-        <span class="n">partition_power</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">while</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">partition_power</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">part2node</span><span class="p">):</span>
-            <span class="n">partition_power</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">part2node</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">partition_power</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;part2node length is not an exact power of 2&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">partition_shift</span> <span class="o">=</span> <span class="mi">32</span> <span class="o">-</span> <span class="n">partition_power</span>
-
-    <span class="k">def</span> <span class="nf">get_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_id</span><span class="p">):</span>
-        <span class="n">data_id</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">data_id</span><span class="p">),</span> <span class="s1">&#39;utf8&#39;</span><span class="p">)</span>
-        <span class="n">part</span> <span class="o">=</span> <span class="n">unpack_from</span><span class="p">(</span><span class="s1">&#39;&gt;I&#39;</span><span class="p">,</span> <span class="n">md5</span><span class="p">(</span><span class="n">data_id</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
-                          <span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">partition_shift</span>
-        <span class="n">node_ids</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">[</span><span class="n">part</span><span class="p">]]</span>
-        <span class="n">zones</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span>
-        <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">):</span>
-            <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">[</span><span class="n">part</span><span class="p">]</span> <span class="ow">in</span> <span class="n">node_ids</span> <span class="ow">and</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">[</span><span class="n">part</span><span class="p">]]</span> <span class="ow">in</span> <span class="n">zones</span><span class="p">):</span>
-                <span class="n">part</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="k">if</span> <span class="n">part</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">):</span>
-                    <span class="n">part</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">node_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">part2node</span><span class="p">[</span><span class="n">part</span><span class="p">])</span>
-            <span class="n">zones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node_ids</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
-        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">node_ids</span><span class="p">]</span>
-
-<span class="k">def</span> <span class="nf">build_ring</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">partition_power</span><span class="p">,</span> <span class="n">replicas</span><span class="p">):</span>
-    <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
-    <span class="n">parts</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">partition_power</span>
-    <span class="n">total_weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
-    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-        <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">parts</span> <span class="o">/</span> <span class="n">total_weight</span> <span class="o">*</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span>
-    <span class="n">part2node</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">partition_power</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                <span class="n">part2node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
-                <span class="k">break</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">node</span><span class="p">[</span><span class="s1">&#39;desired_parts&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                    <span class="n">part2node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
-                    <span class="k">break</span>
-    <span class="n">shuffle</span><span class="p">(</span><span class="n">part2node</span><span class="p">)</span>
-    <span class="n">ring</span> <span class="o">=</span> <span class="n">Ring</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">part2node</span><span class="p">,</span> <span class="n">replicas</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f</span><span class="s1">s to build ring&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">begin</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">ring</span>
-
-<span class="k">def</span> <span class="nf">test_ring</span><span class="p">(</span><span class="n">ring</span><span class="p">,</span> <span class="n">replicas</span><span class="p">):</span>
-    <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
-    <span class="n">data_id_count</span> <span class="o">=</span> <span class="mi">10000000</span>
-    <span class="n">node_counts</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">zone_counts</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">data_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data_id_count</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">get_nodes</span><span class="p">(</span><span class="n">data_id</span><span class="p">):</span>
-            <span class="n">node_counts</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">node_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="n">zone_counts</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;zone&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">zone_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;zone&#39;</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f</span><span class="s1">s to test ring&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">begin</span><span class="p">))</span>
-    
-    <span class="n">total_weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span>
-                             <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
-    <span class="n">max_over</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">max_under</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-        <span class="n">desired</span> <span class="o">=</span> <span class="n">data_id_count</span> <span class="o">*</span> <span class="n">replicas</span> <span class="o">*</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">total_weight</span>
-        <span class="n">diff</span> <span class="o">=</span> <span class="n">node_counts</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">-</span> <span class="n">desired</span>
-        <span class="k">if</span> <span class="n">diff</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">over</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">desired</span>
-            <span class="k">if</span> <span class="n">over</span> <span class="o">&gt;</span> <span class="n">max_over</span><span class="p">:</span>
-                <span class="n">max_over</span> <span class="o">=</span> <span class="n">over</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">under</span> <span class="o">=</span> <span class="o">-</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">desired</span>
-            <span class="k">if</span> <span class="n">under</span> <span class="o">&gt;</span> <span class="n">max_under</span><span class="p">:</span>
-                <span class="n">max_under</span> <span class="o">=</span> <span class="n">under</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f%%</span><span class="s1"> max node over&#39;</span> <span class="o">%</span> <span class="n">max_over</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f%%</span><span class="s1"> max node under&#39;</span> <span class="o">%</span> <span class="n">max_under</span><span class="p">)</span>
-    
-    <span class="n">max_over</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">max_under</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">zone</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;zone&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-        <span class="n">zone_weight</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">n</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span>
-                          <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ring</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-                          <span class="k">if</span> <span class="n">n</span><span class="p">[</span><span class="s1">&#39;zone&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">zone</span><span class="p">)</span>
-        <span class="n">desired</span> <span class="o">=</span> <span class="n">data_id_count</span> <span class="o">*</span> <span class="n">replicas</span> <span class="o">*</span> <span class="n">zone_weight</span> <span class="o">/</span> <span class="n">total_weight</span>
-        <span class="n">diff</span> <span class="o">=</span> <span class="n">zone_counts</span><span class="p">[</span><span class="n">zone</span><span class="p">]</span> <span class="o">-</span> <span class="n">desired</span>
-        <span class="k">if</span> <span class="n">diff</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">over</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">desired</span>
-            <span class="k">if</span> <span class="n">over</span> <span class="o">&gt;</span> <span class="n">max_over</span><span class="p">:</span>
-                <span class="n">max_over</span> <span class="o">=</span> <span class="n">over</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">under</span> <span class="o">=</span> <span class="o">-</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">desired</span>
-            <span class="k">if</span> <span class="n">under</span> <span class="o">&gt;</span> <span class="n">max_under</span><span class="p">:</span>
-                <span class="n">max_under</span> <span class="o">=</span> <span class="n">under</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f%%</span><span class="s1"> max zone over&#39;</span> <span class="o">%</span> <span class="n">max_over</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.02f%%</span><span class="s1"> max zone under&#39;</span> <span class="o">%</span> <span class="n">max_under</span><span class="p">)</span>
-
-
-<span class="n">partition_power</span> <span class="o">=</span> <span class="mi">16</span>
-<span class="n">replicas</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="n">node_count</span> <span class="o">=</span> <span class="mi">256</span>
-<span class="n">zone_count</span> <span class="o">=</span> <span class="mi">16</span>
-<span class="n">nodes</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">node_count</span><span class="p">:</span>
-    <span class="n">zone</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="n">zone</span> <span class="o">&lt;</span> <span class="n">zone_count</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">node_count</span><span class="p">:</span>
-        <span class="n">node_id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
-        <span class="n">nodes</span><span class="p">[</span><span class="n">node_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">node_id</span><span class="p">,</span> <span class="s1">&#39;zone&#39;</span><span class="p">:</span> <span class="n">zone</span><span class="p">,</span>
-                          <span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="n">node_id</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)}</span>
-        <span class="n">zone</span> <span class="o">+=</span> <span class="mi">1</span>
-<span class="n">ring</span> <span class="o">=</span> <span class="n">build_ring</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="n">partition_power</span><span class="p">,</span> <span class="n">replicas</span><span class="p">)</span>
-<span class="n">test_ring</span><span class="p">(</span><span class="n">ring</span><span class="p">,</span> <span class="n">replicas</span><span class="p">)</span>
-</pre></div>
-
-<p></div>
-</div>
-</div></p>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-<div class="prompt"></div>
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>1.15s to build ring
-81.58s to test ring
-1.38% max node over
-1.67% max node under
-0.23% max zone over
-0.21% max zone under
-</pre>
-</div>
-</div>
-
-<p></div>
-</div></p>
-
-<p></div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<hr>
-<style>
-div.prompt.input_prompt {display: none;}
-</style>
-</div>
-</div>
-</div></p>
-
-  </div>
-  
-  <div class="post">
-    <h1 class="post-title">
-      <a href="http://hshsh.me/post/2017-06-13-django-admin-ticks/">
-        Django Admin 定制开发技巧
-      </a>
-    </h1>
-
-    <span class="post-date">Tue, Jun 13, 2017</span>
-
-    
-
-<h2 id="过滤器-filters">过滤器（Filters）</h2>
-
-<h3 id="下拉列表式过滤器">下拉列表式过滤器</h3>
-
-<p>模版文件：</p>
-
-<pre><code class="language-html">{% load i18n %}
-&lt;script type=&quot;text/javascript&quot;&gt;var go_from_select = function(opt) { window.location = window.location.pathname + opt };&lt;/script&gt;
-&lt;h3&gt;{% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}&lt;/h3&gt;
-&lt;ul class=&quot;admin-filter-{{ title|cut:' ' }}&quot;&gt;
-{% if choices|slice:&quot;4:&quot; %}
-    &lt;li&gt;
-    &lt;select style=&quot;width: 95%;&quot;
-        onchange=&quot;go_from_select(this.options[this.selectedIndex].value)&quot;&gt;
-    {% for choice in choices %}
-        &lt;option{% if choice.selected %} selected=&quot;selected&quot;{% endif %}
-         value=&quot;{{ choice.query_string|iriencode }}&quot;&gt;{{ choice.display }}&lt;/option&gt;
-    {% endfor %}
-    &lt;/select&gt;
-    &lt;/li&gt;
-{% else %}
-    {% for choice in choices %}
-        &lt;li{% if choice.selected %} class=&quot;selected&quot;{% endif %}&gt;
-        &lt;a href=&quot;{{ choice.query_string|iriencode }}&quot;&gt;{{ choice.display }}&lt;/a&gt;&lt;/li&gt;
-    {% endfor %}
-{% endif %}
-&lt;/ul&gt;
-</code></pre>
-
-<p>Admin代码：</p>
-
-<pre><code class="language-python">from django.contrib.admin.filters import (
-    AllValuesFieldListFilter, RelatedFieldListFilter, ChoicesFieldListFilter)
-
-
-class DropdownFilter(AllValuesFieldListFilter):
-    template = 'app/admin/dropdown_filter.html'
-    
-
-class RelatedDropdownFilter(RelatedFieldListFilter):
-    template = 'app/admin/dropdown_filter.html'
-
-
-class ChoicesDropdownFilter(ChoicesFieldListFilter):
-    template = 'app/admin/dropdown_filter.html'
-</code></pre>
-
-<h3 id="三级分类级联过滤器">三级分类级联过滤器</h3>
-
-<pre><code class="language-python">from django.db import models
-from django.contrib import admin
-
-
-class Category(models.Model):
-    code = models.CharField(verbose_name='分类代码', max_length=6)
-    name = models.CharField(verbose_name='分类名', max_length=255)
-    level = models.SmallIntegerField(verbose_name='级别')
-    lv1_code = models.CharField(verbose_name='一级代码', max_length=2, default='', blank=True)
-    lv1_name = models.CharField(verbose_name='一级分类', max_length=255, default='', blank=True)
-    lv2_code = models.CharField(verbose_name='二级代码', max_length=4, default='', blank=True)
-    lv2_name = models.CharField(verbose_name='二级分类', max_length=255, default='', blank=True)
-
-
-class Item(models.Model):
-    name = models.CharField(verbose_name='商品名', max_length=255)
-    category = models.ForeignKey(Category, verbose_name='商品分类', null=True, blank=True)
-    cover_img = models.CharField(verbose_name='封面图片', max_length=255, null=True, blank=True)
-
-
-class CategoryLv1Filter(admin.SimpleListFilter):
-    title = '一级分类'
-    parameter_name = 'cat_lv1_code__exact'
-    template = 'app/admin/dropdown_filter.html'
-
-    def lookups(self, request, model_admin):
-        cat_lv1 = Category.objects.filter(level=1)
-        return [
-            (cat.code, cat.name)
-            for cat in cat_lv1
-        ]
-
-    def queryset(self, request, queryset):
-        cat_lv1 = self.value()
-        if cat_lv1:
-            queryset = queryset.filter(category__lv1_code=cat_lv1)
-        return queryset
-
-
-class CategoryLv2Filter(admin.SimpleListFilter):
-    title = '二级分类'
-    parameter_name = 'cat_lv2_code__exact'
-    template = 'app/admin/dropdown_filter.html'
-
-    def lookups(self, request, model_admin):
-        cat_lv1 = request.GET.get('cat_lv1_code__exact')
-        if cat_lv1:
-            cat_lv2 = Category.objects.filter(level=2, lv1_code=cat_lv1)
-        else:
-            cat_lv2 = []
-        return [
-            (cat.code, cat.name)
-            for cat in cat_lv2
-        ]
-
-    def queryset(self, request, queryset):
-        cat_lv2 = self.value()
-        if cat_lv2:
-            queryset = queryset.filter(category__lv2_code=cat_lv2)
-        return queryset
-
-
-class CategoryLv3Filter(admin.SimpleListFilter):
-    title = '三级分类'
-    parameter_name = 'cat_lv3_code__exact'
-    template = 'app/admin/dropdown_filter.html'
-
-    def lookups(self, request, model_admin):
-        cat_lv1 = request.GET.get('cat_lv1_code__exact')
-        cat_lv2 = request.GET.get('cat_lv2_code__exact')
-        if cat_lv1 and cat_lv2:
-            cat_lv3 = Category.objects.filter(level=3, lv2_code=cat_lv2)
-        else:
-            cat_lv3 = []
-        return [
-            (cat.code, cat.name)
-            for cat in cat_lv3
-        ]
-
-    def queryset(self, request, queryset):
-        cat_lv3 = self.value()
-        if cat_lv3:
-            queryset = queryset.filter(category__code=cat_lv3)
-        return queryset
-
-
-class ItemAdmin(admin.ModelAdmin):
-    # ...
-    list_filter = [CategoryLv1Filter, CategoryLv2Filter, CategoryLv3Filter]
-</code></pre>
-
-<h2 id="对象表单-changelist">对象表单（ChangeList）</h2>
-
-<h3 id="列表中显示图片-链接">列表中显示图片、链接</h3>
-
-<pre><code class="language-python">from django.contrib import admin
-
-_default_image = '/static/images/common/Bmr_160.png'
-
-
-# define as a standalone function
-def cover_img_html(obj):
-    img_url = obj.cover_img or _default_image
-    return '&lt;img src=&quot;{}&quot; style=&quot;width:100px;height:100px;&quot; /&gt;'.format(img_url)
-cover_img_html.allow_tags = True
-cover_img_html.short_description = '封面图片'
-
-
-class ItemAdmin(admin.ModelAdmin):
-    list_display = [cover_img_html, 'category_link']
-
-    # define as a method
-    def category_link(self, obj):
-        if not obj.category:
-            return '--'
-        return ('&lt;a href=&quot;/admin/app/category/{}&quot; target=&quot;_blank&quot;&gt;{}&lt;/a&gt;'
-                .format(obj.category.id, obj.category.name))
-    category_link.allow_tags = True
-    category_link.short_description = '商品分类'
-    category_link.admin_order_field = 'category_id'
-</code></pre>
-
-<h3 id="减小外键关联下拉列表选项数量">减小外键关联下拉列表选项数量</h3>
-
-<pre><code class="language-python">from django.db import models
-from django.forms import ModelForm
-from django.contrib import admin
-
-
-class Category(models.Model):
-    code = models.CharField(verbose_name='分类代码', max_length=6)
-    name = models.CharField(verbose_name='分类名', max_length=255)
-    level = models.SmallIntegerField(verbose_name='级别')
-    lv1_code = models.CharField(verbose_name='一级代码', max_length=2, default='', blank=True)
-    lv1_name = models.CharField(verbose_name='一级分类', max_length=255, default='', blank=True)
-    lv2_code = models.CharField(verbose_name='二级代码', max_length=4, default='', blank=True)
-    lv2_name = models.CharField(verbose_name='二级分类', max_length=255, default='', blank=True)
-    
-    
-class Vendor(models.Model):
-    brand = models.CharField(verbose_name='品牌', max_length=255)
-    city = models.CharField(verbose_name='城市', max_length=255)
-    address = models.CharField(verbose_name='地址', max_length=255)
-
-
-class Item(models.Model):
-    name = models.CharField(verbose_name='商品名', max_length=255)
-    brand = models.CharField(verbose_name='品牌', max_length=255)
-    vendor = models.ForeignKey(Vendor, verbose_name='生产厂家', null=True, blank=True)
-    category = models.ForeignKey(Category, verbose_name='商品分类', null=True, blank=True)
-    cover_img = models.CharField(verbose_name='封面图片', max_length=255, null=True, blank=True)
-
-
-class ItemModelForm(ModelForm):
-
-    def __init__(self, *args, **kwargs):
-        super(ItemModelForm, self).__init__(*args, **kwargs)
-        if self.instance:
-            inst_brand = self.instance.brand
-            self.fields['vendor'].queryset = Vendor.objects.filter(brand=inst_brand)
-
-
-class ItemAdmin(admin.ModelAdmin):
-    # ...
-    form = ItemModelForm
-</code></pre>
-
-<h2 id="批量操作-actions">批量操作（Actions）</h2>
-
-<h3 id="禁用批量删除动作">禁用批量删除动作</h3>
-
-<pre><code class="language-python">from django.contrib import admin
-
-
-class ItemAdmin(admin.ModelAdmin):
-    # ...
-
-    def get_actions(self, request):
-        actions = super(ItemAdmin, self).get_actions(request)
-        if 'delete_selected' in actions:
-            del actions['delete_selected']
-        return actions
-</code></pre>
-
-<h3 id="批量执行动作">批量执行动作</h3>
-
-<pre><code class="language-python">from django.contrib import messages, admin
-
-
-def batch_remove_category(model_admin, request, queryset):
-    # batch at database level
-    queryset.update(category_id=None)
-
-    # # or one by one at orm level
-    # for obj in queryset:
-    #     obj.category = None
-    #     obj.save()
-
-    # messages can be send to the admin page
-    messages.success(request, '操作成功！')
-batch_remove_category.short_description = '批量删除分类'
-
-    
-class ItemAdmin(admin.ModelAdmin):
-    # ...
-    actions = [batch_remove_category, ]
-</code></pre>
-
-<h3 id="需要参数的批量执行动作">需要参数的批量执行动作</h3>
-
-<pre><code class="language-python">from django.forms import CharField
-from django.contrib import admin, messages
-from django.contrib.admin import helpers, actions
-
-
-class ChangeBrandActionForm(helpers.ActionForm):
-    brand = CharField(max_length=255, required=False)
-
-
-def batch_change_brand(model_admin, request, queryset):
-    brand = request.POST.get('brand')
-    if not brand:
-        messages.error(request, '请填写非空的品牌名称！')
-        return
-    queryset.update(brand=brand)
-    messages.success(request, '修改成功！')
-batch_change_brand.short_description = '批量修改品牌'
-
-
-class ItemAdmin(admin.ModelAdmin):
-    # ...
-    actions = [batch_change_brand, ]
-    action_form = ChangeBrandActionForm
-</code></pre>
-
-<h3 id="动态创建批量动作">动态创建批量动作</h3>
-
-<pre><code class="language-python">from django.db import models
-from django.contrib import admin, messages
-
-
-class ItemABCType(object):
-    A = 'A'
-    B = 'B'
-    C = 'C'
-    CHOICES = [
-        (A, 'A类商品'),
-        (B, 'B类商品'),
-        (C, 'C类商品')
-    ]
-
-
-class Item(models.Model):
-    abc_type = models.CharField(
-        verbose_name='商品评级', max_length=1,
-        choices=ItemABCType.CHOICES, null=True, blank=True)
-
-
-def _make_mark_action(typ, name):
-    def mark_action_func(model_admin, request, queryset):
-        queryset.update(type=typ)
-        messages.success(request, '操作成功！')
-
-    action_name = 'mark_action_func_{}'.format(typ)
-    mark_action_func.func_name = action_name
-    mark_action_func.short_description = '商品评级：{}'.format(name)
-    return mark_action_func
-
-
-class ItemAdmin(admin.ModelAdmin):
-    # ...
-    actions = [_make_mark_action(typ, name) for typ, name in ItemABCType.CHOICES]
-</code></pre>
-
-<h3 id="对所有行执行指定操作">对所有行执行指定操作</h3>
-
-<p>其他适用场景：批量／全量下载文件，跨库同步。</p>
-
-<pre><code class="language-python">from django.db import models
-from django.contrib import admin, messages
-
-
-class Category(models.Model):
-    pinyin = models.TextField(verbose_name='拼音', default='', blank=True)
-
-    def update_pinyin(self):
-        pinyin = ''
-        self.pinyin = pinyin
-        self.save()
-
-
-def batch_update_pinyin(model_admin, request, queryset):
-    count = queryset.count()
-    for cat in queryset:
-        cat.update_pinyin()
-    messages.success(request, '成功更新%d条拼音！' % count)
-batch_update_pinyin.short_description = '批量更新分类拼音'
-
-
-class CategoryAdmin(admin.ModelAdmin):
-    # ...
-    actions = [batch_update_pinyin, ]
-    
-    def changelist_view(self, request, extra_context=None):
-        &quot;&quot;&quot;
-        Override to allow action on all records without selection.
-        &quot;&quot;&quot;
-        if (request.POST.get('action') == 'batch_update_pinyin' and
-                not request.POST.getlist(admin.ACTION_CHECKBOX_NAME)):
-            post = request.POST.copy()
-            for cat in Category.objects.all():
-                post.update({admin.ACTION_CHECKBOX_NAME: str(cat.id)})
-            request._set_post(post)
-        return super(CategoryAdmin, self).changelist_view(request, extra_context)
-</code></pre>
-
-<h2 id="页面交互">页面交互</h2>
-
-<h3 id="对象编辑页面添加特殊字段">对象编辑页面添加特殊字段</h3>
-
-<pre><code class="language-python">from django.forms import ModelForm, CharField
-from django.contrib import admin
-
-
-class ItemAdminForm(ModelForm):
-
-    upload_img_url = CharField(max_length=255, required=False)
-
-    def save(self, commit=True):
-        upload_img_url = self.cleaned_data.get('upload_img_url')
-        if upload_img_url:
-            self.upload_image(upload_img_url)
-        return super(ItemAdminForm, self).save(commit)
-
-    def upload_image(self, image_url):
-        pass
-
-
-class ItemAdmin(admin.ModelAdmin):
-    # ...
-    form = ItemAdminForm
-</code></pre>
-
-<h3 id="用js定制复杂交互功能">用JS定制复杂交互功能</h3>
-
-<p>模版文件：</p>
-
-<pre><code class="language-html">{% extends &quot;admin/change_list.html&quot; %}
-
-{% block extrahead %}
-{{ block.super }}
-&lt;link href=&quot;//cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.css&quot; rel=&quot;stylesheet&quot;&gt;
-&lt;script src=&quot;//cdn.bootcss.com/jquery/3.1.0/jquery.min.js&quot;&gt;&lt;/script&gt;
-&lt;script src=&quot;//cdn.bootcss.com/semantic-ui/2.2.10/semantic.min.js&quot;&gt;&lt;/script&gt;
-&lt;script src=&quot;//cdn.bootcss.com/lodash.js/4.17.4/lodash.min.js&quot;&gt;&lt;/script&gt;
-&lt;script&gt;
-$(function () {
-  var extraStyles = ' \
-        &lt;style type=&quot;text/css&quot;&gt; \
-        /* .actions {position: fixed;} */ \
-        .field-name input {width: 10em;} \
-        .field-brand input, .field-spec input, .field-price input {width: 4em;} \
-        input[type=checkbox] {transform: scale(1.4);} \
-        .hover-image { \
-            display: none; padding: 30px; \
-            position: fixed; top: 50%; left: 50%; \
-            transform: translate(-50%, -50%); z-index: 1; \
-            width: 400px; height: 400px; \
-            border: 1px solid #cecece; background: #fff; \
-        } \
-        &lt;/style&gt;'
-  $(extraStyles).appendTo($('head'))
-})
-
-window.onload = function () {
-  var categoryHTML = ' \
-        &lt;div class=&quot;wrap&quot;&gt; \
-        &lt;input name=&quot;action_category&quot; type=&quot;text&quot; class=&quot;search&quot;&gt; \
-        &lt;div class=&quot;menu&quot;&gt;&lt;/div&gt; \
-        &lt;/div&gt;'
-  $('.actions input[name=&quot;action_category&quot;]'.replaceWith(categoryHTML))
-
-  var hoverImageHTML = '&lt;img src=&quot;&quot; class=&quot;hover-image&quot;/&gt;'
-  $(hoverImageHTML).appendTo($('body'))
-
-  // show image when mouse move over image links
-  $('tbody').on({
-    mouseenter: function () {
-      var href = $(this).attr('href')
-      $('.hover-image').attr('src', href).show()
-      return false
-    },
-    mouseleave: function () {
-      $('.hover-image').hide()
-      return false
-    }
-  }, 'a.images')
-
-  // disable editing when item has already been verified
-  $('.link-actions.reset').each(function () {
-    var parent = $(this).parent().parent()
-    parent.find('input, select').attr('disabled', 'disabled').css('background', '#efeeee')
-    parent.find('a.change-related, a.add-related').hide()
-  })
-
-  // the disabled lines should be enabled before saving request
-  // to avoid form validation errors
-  $('input[type=submit][value=Save]').on('click', function () {
-    $('tr input:not([type=&quot;checkbox&quot;]):disabled').removeAttr('disabled')
-  })
-
-  // ajax request for removing barcode/tmall_id/jd_id/yhd_id
-  $('td').on('click', '.ui.mini.button.inline', function () {
-    var that = $(this)
-    // get desired parameters
-
-    $.ajax({
-      url: '/api/path/to/remove/relation',
-      type: 'POST',
-      data: {
-        // parameters
-      },
-      success: function (status) {
-        console.log(status)
-      },
-      error: function (XMLHttpRequest, textStatus, errorThrown) {
-        console.log(XMLHttpRequest.responseText)
-      }
-    })
-  })
-
-  // ajax requests for item operation actions
-  $('.link-actions').click(function () {
-    var that = $(this)
-    // get desired parameters
-
-    $.ajax({
-      // pass
-    })
-  })
-
-  // searching for categories using ajax requests
-  $('input.search[name=&quot;action_category&quot;]').on('input', _.debounce(function () {
-    var keyword = $(this).val();
-    var regular = /^[0-9A-Za-z\u4e00-\u9fa5]{3,}$/
-    if (keyword === String(keyword.match(regular))) {
-      $.ajax({
-        url: '/api/path/to/category/search?keyword=' + keyword,
-        type: 'GET',
-        success: function (data) {
-          if (data.code === 0) {
-            $('.menu').children().remove()
-            for (var i = 0; i &lt; data.results.length; i++) {
-              var item = '&lt;div class=&quot;item&quot; data-value=' + data.results[i].code + '&gt;'
-                + data.results[i].name + '&lt;/div&gt;'
-              $('.menu').append(item)
-            }
-            $('.menu').show()
-          } else {
-            alert(data)
-          }
-        },
-        error: function (XMLHttpRequest, textStatus, errorThrown) {
-          alert(XMLHttpRequest.responseText)
-        }
-      })
-    }
-  }, 800))
-
-  // category selection items click events
-  $('.menu').on('click', '.item', function (e) {
-    e.stopPropagation()
-    $('input.search').val($(this).data('value'))
-    $('.menu').hide()
-  })
-}
-&lt;/script&gt;
-{% endblock %}
-
-&lt;!-- show pagination on both top and bottom --&gt;
-{% block result_list %}
-    {% block pagination %} {{ block.super }} {% endblock %}
-    {{ block.super }}
-{% endblock %}
-</code></pre>
-
-<p>Admin代码：</p>
-
-<pre><code class="language-python">from django.db import models
-from django.contrib import admin
-from django.contrib.postgres.fields import ArrayField
-
-
-class StdItemStatus(object):
-    NEW = 'new'
-    PENDING_REVIEW = 'pending_review'
-    HALF_REVIEW = 'half_review'
-    HUMAN_VERIFIED = 'human_verified'
-    AUTO_VERIFIED = 'auto_verified'
-    DELETED = 'deleted'
-    NA = 'na'
-
-    CHOICES = [
-        (NEW, '新增标品'),
-        (PENDING_REVIEW, '待审核'),
-        (HALF_REVIEW, '半审核'),
-        (HUMAN_VERIFIED, '已通过人工审核'),
-        (AUTO_VERIFIED, '已通过自动审核'),
-        (DELETED, '已删除'),
-        (NA, '不处理'),
-    ]
-    
-
-
-class Item(models.Model):
-    # ...
-    barcodes = ArrayField(
-    models.TextField(), verbose_name='商品条码', null=True, blank=True)
-    status = models.CharField(
-        verbose_name='状态', max_length=20,
-        default=StdItemStatus.NEW, choices=StdItemStatus.CHOICES)
-
-    @property
-    def is_verified(self):
-        return self.status in (
-            StdItemStatus.HUMAN_VERIFIED, StdItemStatus.AUTO_VERIFIED,
-            StdItemStatus.DELETED, StdItemStatus.NA,
-        )
-
-
-def images_html(item_obj):
-    from os.path import basename
-    images = item_obj.images or []
-    html = '&lt;br&gt;'.join(map(
-        lambda url:
-            '&lt;a class=&quot;images&quot; href=&quot;{url}&quot; target=&quot;_blank&quot;&gt;{name}&lt;/a&gt;'
-            .format(url=url, name=basename(url)[:8]),
-        images
-    ))
-    return html or '--'
-
-
-def barcodes_html(item_obj):
-    barcodes = item_obj.barcodes or []
-    if item_obj.is_verified:
-        html = '&lt;br&gt;'.join(map(
-            lambda bc: '&lt;span&gt;{}&lt;/span&gt;'.format(bc),
-            barcodes
-        ))
-    else:
-        html = '&lt;br&gt;'.join(map(
-            lambda bc: '&lt;span&gt;{}&lt;/span&gt;&lt;span class=&quot;mini ui button inline&quot;&gt;X&lt;/span&gt;',
-            barcodes
-        ))
-        html += '&lt;br&gt;&lt;span class=&quot;tiny ui button&quot;&gt;添加&lt;/span&gt;'
-    return html or '--'
-barcodes_html.allow_tags = True
-barcodes_html.short_description = '商品条码'
-
-
-def operation_links(item_obj):
-    if not item_obj.is_verified:
-        edit = '&lt;a href=&quot;/admin/app/item/{id}&quot; target=&quot;_blank&quot;&gt;修改&lt;/a&gt;'.format(id=item_obj.id)
-        verify = '&lt;a class=&quot;link-actions verify&quot; data-action=&quot;verify&quot; href=&quot;javascript:&quot;&gt;通过&lt;/a&gt;'
-        remove = '&lt;a class=&quot;link-actions remove&quot; data-action=&quot;delete&quot; href=&quot;javascript:&quot;&gt;删除&lt;/a&gt;'
-        return '&lt;br&gt;'.join([edit, verify, remove])
-    else:
-        reset = '&lt;a class=&quot;link-actions reset&quot; data-action=&quot;reset&quot; href=&quot;javascript:&quot;&gt;重置状态&lt;/a&gt;'
-        return reset
-operation_links.allow_tags = True
-operation_links.short_description = '审核操作'
-
-
-class ItemAdmin(admin.ModelAdmin):
-    # ...
-    list_display = [images_html, barcodes_html, operation_links, ]
-    list_display_links = None
-    list_per_page = 5
-
-    change_list_template = 'app/admin/item_change_list.html'
-</code></pre>
-
-<h2 id="其他技巧">其他技巧</h2>
-
-<h3 id="事务控制">事务控制</h3>
-
-<p>其他适用场景：订单相关操作，运营操作日志。</p>
-
-<pre><code class="language-python">from django.db import models, transaction
-from django.contrib.postgres.fields import ArrayField
-
-
-class Item(models.Model):
-    barcodes = ArrayField(
-        models.TextField(), verbose_name='国际条码', null=True, blank=True)
-    tmall_ids = ArrayField(
-        models.TextField(), verbose_name='天猫IDs', null=True, blank=True)
-    jd_ids = ArrayField(
-        models.TextField(), verbose_name='京东IDs', null=True, blank=True)
-    yhd_ids = ArrayField(
-        models.TextField(), verbose_name='一号店IDs', null=True, blank=True)
-
-    def fix_m2m_conflict(self, conflict_fields):
-        # fix conflicts between different items
-        # in case of un-fixable errors, raise exceptions
-        pass
-
-    def save_relations(self, related_fields):
-        # the related barcode, tmall/jd/yhd items should be saved
-        # together with the item
-        pass
-
-    def save(self, force_insert=False, force_update=False, using=None,
-             update_fields=None):
-        # ...
-        conflict_fields = []
-        related_fields = []
-
-        try:
-            # all success or all fail
-            with transaction.atomic():
-                self.fix_m2m_conflict(conflict_fields)
-                self.save_relations(related_fields)
-                super(Item, self).save(force_insert, force_update, using, update_fields)
-        except Exception as err:
-            # NOTE: exceptions should be handled outside the transaction context
-            pass
-</code></pre>
-
-<h3 id="自动注册admin类">自动注册Admin类</h3>
-
-<pre><code class="language-python">from django.contrib import admin
-
-from .models import *
-
-# ModelAdmin classes definitions
-
-# register all admin models which end with &quot;Admin&quot;
-_locals = locals()
-_obj_name = _obj = _m = None
-for _obj_name, _obj in _locals.items():
-    if (_obj_name.endswith('Admin') and
-            issubclass(_obj, admin.ModelAdmin) and
-            _obj is not admin.ModelAdmin):
-        _m = _locals[_obj_name.replace('Admin', '')]
-        admin.site.register(_m, _obj)
-del _locals, _obj_name, _obj, _m
-</code></pre>
-
-<h3 id="在后台界面查看操作日志">在后台界面查看操作日志</h3>
-
-<pre><code class="language-python">from django.contrib import admin
-from django.contrib.admin.models import LogEntry
-
-
-class LogEntryAdmin(admin.ModelAdmin):
-    &quot;&quot;&quot;
-    Admin of the history/log table for view only purpose.
-    &quot;&quot;&quot;
-    list_display = [
-        'action_time', 'user', 'content_type', 'object_id', 'object_repr',
-        'action_flag', 'change_message']
-    readonly_fields = [
-        'user', 'content_type', 'object_id', 'object_repr', 'action_flag',
-        'change_message']
-    list_filter = ['action_time', 'user', 'content_type']
-    ordering = ['-action_time']
-    list_display_links = None
-    actions = None
-
-    # We don't want people changing this historical record
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def save_model(self, request, obj, form, change):
-        from django.core.exceptions import SuspiciousOperation
-        raise SuspiciousOperation('log entry should not be changed')
-
-
-admin.site.register(LogEntry, LogEntryAdmin)
 </code></pre>
 
   </div>

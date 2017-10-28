@@ -1,0 +1,453 @@
+	<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh-cn" lang="zh-cn">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.31-DEV" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title> 用OpenResty构建动态代理服务 &middot; hshsh&#39;s little site </title>
+
+  
+  <link rel="stylesheet" href="http://hshsh.me/css/poole.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/syntax.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/hyde.css">
+  
+  <link rel="stylesheet" href="//cdn.bootcss.com/highlight.js/9.2.0/styles/default.min.css">
+  <link rel="stylesheet" href="http://hshsh.me/css/style.css">
+
+  
+  <script type="text/javascript" src="//cdn.bootcss.com/highlight.js/9.2.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  <link href="" rel="alternate" type="application/rss+xml" title="hshsh&#39;s little site" />
+</head>
+
+	<body class="">
+		<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="http://hshsh.me/"><h1>hshsh&#39;s little site</h1></a>
+      <p class="lead">
+       假行僧 
+      </p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li><a href="/">Home</a> </li>
+      <li><a href="/post/"><span class="navlink">Blog</span></a></li>
+      <li><a href="https://github.com/jxskiss/">@Github</a></li>
+    </ul>
+
+    <p>&copy; 2014 - 2017<br>All rights reserved. </p>
+  </div>
+</div>
+
+
+		<div class="content container">
+			<div class="post">
+			 	<h1>用OpenResty构建动态代理服务</h1>
+			  <span class="post-date">Sun, Oct 29, 2017</span>
+			      <p>最近的项目使用了前后端分离的开发模式，前后端都在同一台机器上开发，需要对前后端开发配置联调服务。解决这个问题方法很多，Nginx/OpenResty 是其中一种。</p>
+
+<p>后来又有其他项目的前端后端同学也在这台服务器上做开发。</p>
+
+<p>后来，这台服务器绑定了多个域名，要对多个域名、多个端口做解析。</p>
+
+<p>再后来，其中一个项目的后端开始以微服务的方式开发，对不同路径要代理到不同的后端开发端口上去。</p>
+
+<p>既然已经走了这么远，索性再扩展一下，除了支持代理到端口，再加上指定文件夹静态文件服务呗，于是有了下面的配置。</p>
+
+<p>功能列表：</p>
+
+<ol>
+<li>一个端口支持多域名，访问不同域名可以转发到不同上游服务</li>
+<li>一个域名下，可以按照项目分组，不同项目可以配置不同后端服务</li>
+<li>一个项目可以根据路由配置多个对应后端服务</li>
+<li>支持不带后端路由的直接转发</li>
+<li>支持指定文件夹静态文件服务</li>
+<li>上述一切都可以通过接口在线配置，不需要修改 Nginx/OpenResty 配置文件，并且自带接口文档</li>
+</ol>
+
+<p>依赖：OpenResty，安装请参考<a href="https://openresty.org/cn/installation.html">官方文档</a>。</p>
+
+<pre><code class="language-conf"># #### OpenResty dynamic upstreams ####
+
+# 配置表，key 有三种格式
+#   1. example.domain.name:port_number
+#      value 有三种格式：
+#      - upstream_ip:port
+#      - upstream_ip:port,project
+#      - /absolute/path/to/document/root
+#   2. example.domain.name:project_name
+#      value JSON格式的路由表
+#   2. kv:runtime_variable_name
+#      value 所有请求共享的运行时变量
+lua_shared_dict dyn_registry 1m;
+
+server {
+    # 把要开发的端口全部注册在这里，一行一个，比如 9000 - 9009
+    listen       9000;
+    listen       9001;
+    # listen     ...
+    listen       9008;
+    listen       9009;
+
+    # 接受请求的域名，全部写在一行，用空格分开
+    # 上面注册的端口对所有域名都可用
+    server_name  dyn1.hshsh.me dyn2.hshsh.me;
+
+    access_log   /path/to/access_or_dynamic.log main;
+    error_log    /path/to/error_or_dynamic.log notice;
+
+    default_type  application/json;
+
+    set $dyn_conf_file &quot;/path/to/or-dynamic.json&quot;;
+
+    # 无论是配置请求，还是代理请求，第一个请求都需要触发配置加载，
+    # 因此这两个 set 指令不能放在 location 里面，必须放在 server 中
+    set $upstream &quot;&quot;;
+    set_by_lua_block $docroot {
+        local cjson = require &quot;cjson&quot;
+        local registry = ngx.shared.dyn_registry
+
+        -- 配置成请求触发加载可以不用写全局的 init_by_lua* 指令，
+        -- 方便与其他 OpenResty 服务集成
+        if not registry:get(&quot;kv:loaded&quot;) then
+            local file, err = io.open(ngx.var.dyn_conf_file, &quot;rb&quot;)
+            if not file then
+                ngx.log(ngx.ERR, &quot;error opening config file: &quot;, err)
+            else
+                local contents = file:read(&quot;*all&quot;)
+                file:close()
+                local suc, config = pcall(cjson.decode, contents)
+                if not suc then
+                    ngx.log(ngx.ERR, &quot;error decoding config file&quot;)
+                else
+                    for k, v in pairs(config) do
+                        -- 第一种 key, domain:port
+                        if k:match(&quot;:%d+$&quot;) then
+                            registry:set(k, v)
+                        -- 第二种 key, domain:project
+                        else
+                            registry:set(k, cjson.encode(v))
+                        end
+                    end
+                end
+            end
+            registry:set(&quot;kv:loaded&quot;, &quot;true&quot;)
+        end
+
+        -- 对于配置请求不需要查配置，配置接口可以在所有域名和端口上访问
+        if ngx.re.match(ngx.var.uri, &quot;^/or-dynamic/&quot;) then
+            return &quot;&quot;
+        end
+
+        -- 根据域名和端口查配置，如果查不到则是没有注册，直接返回
+        -- 在 / location 中会返回 404，set 指令中不能结束请求
+        local http_host = ngx.var.http_host
+        local upstream = registry:get(http_host)
+        if not upstream then
+            return &quot;&quot;
+        end
+
+        -- upstream_ip:port, 项目无关，没有后端路由的直接代理
+        if upstream:match(&quot;:%d+$&quot;) then
+            ngx.var.upstream = upstream
+            return &quot;&quot;
+        end
+
+        -- 没有逗号，文档根目录路径，所以不支持配置带有都好的路径
+        if not upstream:match(&quot;,&quot;) then
+            return upstream
+        end
+
+        -- upstream_ip:port,project, 项目前端配置
+        -- 根据路由表确定是否需要转发后端服务
+        local proj, routes, uri, dest, m, err
+        m, err = ngx.re.match(upstream, [=[([^,]+),([^,]+)]=])
+        upstream, proj = m[1], m[2]
+        routes = cjson.decode(registry:get(ngx.var.host .. &quot;:&quot; .. proj))
+        for uri, dest in pairs(routes) do
+            if dest and ngx.re.match(ngx.var.uri, uri) then
+                upstream = dest
+                break
+            end
+        end
+        ngx.var.upstream = upstream
+        return &quot;&quot;
+    }
+
+    # 方便开发调试，给每个请求加上 upstream 和 docroot 的响应头
+    header_filter_by_lua_block {
+        ngx.header[&quot;OR-Dyn-Upstream&quot;] = ngx.var.upstream
+        ngx.header[&quot;OR-Dyn-Docroot&quot;] = ngx.var.docroot
+    }
+
+    location / {
+        proxy_set_header Host $Host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+
+        # upstream 需要在处理 docroot 之前处理, if is evil
+        if ($upstream != &quot;&quot;) {
+            proxy_pass http://$upstream;
+            break;
+        }
+
+        # upstream 没有命中，docroot 也没有命中，则没有注册，可以洗洗睡了
+        if ($docroot = &quot;&quot;) {
+            return 404;
+        }
+
+        root $docroot;
+        index index.html index.htm;
+
+        # 对于静态文件服务，如果需要支持 history 模式路由的前端单页面应用，取消注释下面这一行
+        # try_files $uri $uri/ /index.html =404;
+
+        error_page   500 502 503 504  @5xx;
+    }
+
+    # 方便开发调试，把抛 5xx 错误的 upstream 直接显示在页面上
+    location @5xx {
+        default_type text/plain;
+        content_by_lua_block {
+            ngx.say(&quot;oops: &quot; .. ngx.var.upstream)
+        }
+    }
+
+    # 当前配置查询接口
+    location = /or-dynamic/ {
+        content_by_lua_block {
+            local cjson = require &quot;cjson&quot;
+            local registry = ngx.shared.dyn_registry
+            
+            -- 自包含的接口文档
+            local config = {
+                help = {
+                    [ &quot;parameters&quot; ] = {
+                        host = &quot;域名, eg: example.domain.name&quot;,
+                        port = &quot;端口号, eg: 9001&quot;,
+                        upstream = &quot;上游服务, eg: 127.0.0.1:6666&quot;,
+                        docroot = &quot;静态文件根目录, eg: /absolute/path/to/document/root&quot;,
+                        uri = &quot;后端服务路由，支持正则表达式, eg: ^/api/v\d+/&quot;
+                    },
+                    -- 配置项目无关的直接代理
+                    [ &quot;direct proxy&quot; ] = {
+                        set = &quot;/or-dynamic/set?host=&amp;port=&amp;upstream=&quot;,
+                        del = &quot;/or-dynamic/del?host=&amp;port=&quot;
+                    },
+                    -- 配置静态文件服务根目录
+                    [ &quot;document root&quot; ] = {
+                        set = &quot;/or-dynamic/set?host=&amp;port=&amp;docroot=&quot;,
+                        del = &quot;/or-dynamic/del?host=&amp;port=&quot;
+                    },
+                    -- 配置项目前端代理
+                    [ &quot;project frontend&quot; ] = {
+                        set = &quot;/or-dynamic/set?host=&amp;proj=&amp;port=&amp;upstream=&quot;,
+                        del = &quot;/or-dynamic/del?host=&amp;port=&quot;
+                    },
+                    -- 配置项目后端路由
+                    [ &quot;project backend&quot; ] = {
+                        set = &quot;/or-dynamic/set?host=&amp;proj=&amp;uri=&amp;upstream=&quot;,
+                        del = &quot;/or-dynamic/del?host=&amp;proj=&amp;uri=&quot;
+                    }
+                }
+            }
+
+            # 按照域名和项目分组
+            for _, k in ipairs(registry:get_keys()) do
+                if not k:match(&quot;^kv:&quot;) then
+                    local v = registry:get(k)
+                    local req_type, host, proj, port, upstream, docroot, routes, m, err
+                    m, err = ngx.re.match(k, [=[^([^:]+):(\d+)$]=])
+                    if m then  -- host:port
+                        host, port = m[1], m[2]
+                        if v:match(&quot;:%d+$&quot;) then  -- direct proxy
+                            req_type = &quot;proxy&quot;
+                            upstream = v
+                        elseif not v:match(&quot;,&quot;) then  -- document root
+                            req_type = &quot;docroot&quot;
+                            docroot = v
+                        else  -- project frontend
+                            req_type = &quot;frontend&quot;
+                            m, err = ngx.re.match(v, [=[^([^,]+),([^,]+)$]=])
+                            upstream, proj = m[1], m[2]
+                        end
+                    else  -- project backend routes
+                        req_type = &quot;backend&quot;
+                        m, err = ngx.re.match(k, [=[([^:]+):([^:]+)]=])
+                        host, proj = m[1], m[2]
+                    end
+
+                    if not config[host] then
+                        config[host] = {}
+                    end
+                    if req_type == &quot;docroot&quot; then
+                        config[host][port] = docroot
+                    elseif req_type == &quot;proxy&quot; then
+                        config[host][port] = upstream
+                    else  -- project frontend or backend
+                        if not config[host][proj] then
+                            config[host][proj] = {}
+                        end
+                        if req_type == &quot;frontend&quot; then
+                            config[host][proj][port] = upstream
+                        else
+                            config[host][proj][&quot;routes&quot;] = cjson.decode(v)
+                        end
+                    end
+                end
+            end
+            ngx.say(cjson.encode(config))
+        }
+    }
+
+    # 新增、修改配置接口
+    location = /or-dynamic/set {
+        content_by_lua_block {
+            local cjson = require &quot;cjson&quot;
+            local registry = ngx.shared.dyn_registry
+            local args = ngx.req.get_uri_args()
+            local is_valid = true
+            local req_type, r_key, r_value, err
+
+            -- host is required for requests of any type
+            if not args or not args.host or args.host:len() == 0 then
+                is_valid = false
+                err = &quot;parameter host required&quot;
+            end
+
+            -- project frontend: host, proj, port, upstream
+            -- project backend: host, proj, uri, upstream
+            -- direct proxy: host, port, upstream
+            -- document root: host, port, docroot
+            if is_valid and (not req_type) and args.port and args.port:len() &gt; 0 then
+                r_key = args.host .. &quot;:&quot; .. args.port
+                if args.upstream and args.upstream:len() &gt; 0 then
+                    if args.proj and args.proj:len() &gt; 0 then
+                        req_type = &quot;frontend&quot;
+                        r_value = args.upstream .. &quot;,&quot; .. args.proj
+                    else
+                        req_type = &quot;proxy&quot;
+                        r_value = args.upstream
+                    end
+                elseif args.docroot and args.docroot:len() &gt; 0 then
+                    req_type = &quot;docroot&quot;
+                    r_value = args.docroot
+                end
+            end
+            if is_valid and (not req_type) and args.uri and args.uri:len() &gt; 0 and
+                    args.upstream and args.upstream:len() &gt; 0 and
+                    args.proj and args.proj:len() &gt; 0 then
+                req_type = &quot;backend&quot;
+                r_key = args.host .. &quot;:&quot; .. args.proj
+                local routes = cjson.decode(registry:get(routes_key) or &quot;{}&quot;)
+                routes[args.uri] = args.upstream
+                r_value = cjson.encode(routes)
+            end
+
+            if req_type then
+                registry:set(r_key, r_value)
+                local res = ngx.location.capture(&quot;/or-dynamic/_save&quot;)
+                if res.status ~= ngx.HTTP_OK then
+                    err = &quot;failed writing config file&quot;
+                else
+                    ngx.redirect(&quot;/or-dynamic/&quot;)
+                end
+            end
+            ngx.say(cjson.encode({error = err or &quot;invalid or missing parameters&quot;}))
+        }
+    }
+
+    # 删除配置接口
+    location = /or-dynamic/del {
+        content_by_lua_block {
+            local cjson = require &quot;cjson&quot;
+            local args = ngx.req.get_uri_args()
+            if (not args or not args.host or args.host:len() == 0 or
+                    ((not args.port or args.port:len() == 0) and
+                     (not args.proj or args.proj.len() == 0 or
+                      not args.uri or args.uri:len() == 0))
+                ) then
+                ngx.say(cjson.encode({error = &quot;missing parameters&quot;}))
+                return
+            end
+
+            local registry = ngx.shared.dyn_registry
+            if args.port and args.port:len() &gt; 0 then
+                registry:delete(args.host .. &quot;:&quot; .. args.port)
+            else
+                local routes_key = args.host .. &quot;:&quot; .. args.proj
+                local routes = cjson.decode(registry:get(routes_key) or &quot;{}&quot;)
+                local new = {}
+                for uri, dest in pairs(routes) do
+                    if dest and uri ~= args.uri then
+                        new[uri] = dest
+                    end
+                end
+                registry:set(routes_key, cjson.encode(new))
+            end
+
+            local res = ngx.location.capture(&quot;/or-dynamic/_save&quot;)
+            if res.status ~= ngx.HTTP_OK then
+                ngx.say(cjson.encode({error = &quot;failed writing config file&quot;}))
+            else
+                ngx.redirect(&quot;/or-dynamic/&quot;)
+            end
+        }
+    }
+
+    # 保存当前配置表到配置文件
+    # internal 类型的 location 专门用于内部请求逻辑，外部访问不到
+    location = /or-dynamic/_save {
+        internal;
+        content_by_lua_block {
+            local cjson = require &quot;cjson&quot;
+            local registry = ngx.shared.dyn_registry
+            local config = {}
+
+            for _, k in ipairs(registry:get_keys()) do
+                -- 不保存运行时变量，只保存配置内容
+                if not k:match(&quot;^kv:&quot;) then
+                    local v = registry:get(k)
+                    if ngx.re.match(k, [=[\:\d+$]=]) then  -- host:port
+                        config[k] = v
+                    else
+                        config[k] = cjson.decode(v)
+                    end
+                end
+            end
+
+            -- assume we don't need lock to access config file
+            local file, err = io.open(ngx.var.dyn_conf_file, &quot;w&quot;)
+            if file then
+                file:write(cjson.encode(config))
+                file:close()
+                ngx.print(&quot;ok&quot;)
+            else
+                ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+                ngx.log(ngx.ERR, &quot;failed to save config: &quot;, err)
+                ngx.say(err)
+            end
+        }
+    }
+
+}
+</code></pre>
+
+			</div>
+
+			
+		</div>
+
+  </body>
+</html>

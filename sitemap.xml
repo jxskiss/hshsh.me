@@ -3,6 +3,16 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>http://hshsh.me/post/2017-10-29-openresty-dynamic-upstreams/</loc>
+    <lastmod>2017-10-29T01:40:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/post/2017-10-28-build-static-openresty/</loc>
+    <lastmod>2017-10-28T23:00:00+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>http://hshsh.me/post/2017-10-22-single-file-vue-webpack/</loc>
     <lastmod>2017-10-22T16:30:00+08:00</lastmod>
   </url>
@@ -225,8 +235,26 @@
   </url>
   
   <url>
+    <loc>http://hshsh.me/tags/nginx/</loc>
+    <lastmod>2017-10-29T01:40:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>http://hshsh.me/tags/ntp/</loc>
     <lastmod>2016-07-30T07:30:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/openresty/</loc>
+    <lastmod>2017-10-29T01:40:00+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http://hshsh.me/tags/ops/</loc>
+    <lastmod>2017-10-29T01:40:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -256,7 +284,7 @@
   
   <url>
     <loc>http://hshsh.me/post/</loc>
-    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
+    <lastmod>2017-10-29T01:40:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -316,7 +344,7 @@
   
   <url>
     <loc>http://hshsh.me/tags/tricks/</loc>
-    <lastmod>2017-06-13T23:00:00+08:00</lastmod>
+    <lastmod>2017-10-29T01:40:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -352,7 +380,7 @@
   
   <url>
     <loc>http://hshsh.me/</loc>
-    <lastmod>2017-10-22T16:30:00+08:00</lastmod>
+    <lastmod>2017-10-29T01:40:00+08:00</lastmod>
     <priority>0</priority>
   </url>
   

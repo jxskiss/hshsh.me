@@ -6,10 +6,38 @@
     <description>Recent content on hshsh&#39;s little site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sun, 22 Oct 2017 16:30:00 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 29 Oct 2017 01:40:00 +0800</lastBuildDate>
     
 	<atom:link href="http://hshsh.me/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>用OpenResty构建动态代理服务</title>
+      <link>http://hshsh.me/post/2017-10-29-openresty-dynamic-upstreams/</link>
+      <pubDate>Sun, 29 Oct 2017 01:40:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2017-10-29-openresty-dynamic-upstreams/</guid>
+      <description>最近的项目使用了前后端分离的开发模式，前后端都在同一台机器上开发，需要对前后端开发配置联调服务。解决这个问题方法很多，Nginx/OpenResty 是其中一种。
+后来又有其他项目的前端后端同学也在这台服务器上做开发。
+后来，这台服务器绑定了多个域名，要对多个域名、多个端口做解析。
+再后来，其中一个项目的后端开始以微服务的方式开发，对不同路径要代理到不同的后端开发端口上去。
+既然已经走了这么远，索性再扩展一下，除了支持代理到端口，再加上指定文件夹静态文件服务呗，于是有了下面的配置。
+功能列表：
+ 一个端口支持多域名，访问不同域名可以转发到不同上游服务 一个域名下，可以按照项目分组，不同项目可以配置不同后端服务 一个项目可以根据路由配置多个对应后端服务 支持不带后端路由的直接转发 支持指定文件夹静态文件服务 上述一切都可以通过接口在线配置，不需要修改 Nginx/OpenResty 配置文件，并且自带接口文档  依赖：OpenResty，安装请参考官方文档。
+# #### OpenResty dynamic upstreams #### # 配置表，key 有三种格式 # 1. example.domain.name:port_number # value 有三种格式： # - upstream_ip:port # - upstream_ip:port,project # - /absolute/path/to/document/root # 2. example.domain.name:project_name # value JSON格式的路由表 # 2. kv:runtime_variable_name # value 所有请求共享的运行时变量 lua_shared_dict dyn_registry 1m; server { # 把要开发的端口全部注册在这里，一行一个，比如 9000 - 9009 listen 9000; listen 9001; # listen .</description>
+    </item>
+    
+    <item>
+      <title>静态编译OpenResty</title>
+      <link>http://hshsh.me/post/2017-10-28-build-static-openresty/</link>
+      <pubDate>Sat, 28 Oct 2017 23:00:00 +0800</pubDate>
+      
+      <guid>http://hshsh.me/post/2017-10-28-build-static-openresty/</guid>
+      <description>有时候会需要静态编译OpenResty。
+参考资料：http://www.codingblog.cn/blog/9579.html。
+当前使用的编译脚本。Ubuntu 16.04 测试通过，需要 build-essential 包，使用 sudo apt-get install build-essential 安装。
+#!/bin/bash set -e OPENRESTY_VER=1.11.2.5 LUAJIT_BUNDLE_VER=&amp;quot;2.1-20170808&amp;quot; wget https://openresty.org/download/openresty-${OPENRESTY_VER}.tar.gz tar -xzf openresty-${OPENRESTY_VER}.tar.gz cd openresty-${OPENRESTY_VER} cd bundle/LuaJIT-${LUAJIT_BUNDLE_VER} make -j8 make install PREFIX=`pwd` LUAROOT=`pwd` rm -rf lib/*.so* cd ../.. mkdir -p extra-libs cd extra-libs PCRE_VER=8.39 rm -rf pcre-* echo -n &amp;quot;downloading pcre-$PCRE_VER...&amp;quot; wget -O pcre-$PCRE_VER.tar.bz2 &amp;quot;http://downloads.sourceforge.net/project/pcre/pcre/$PCRE_VER/pcre-$PCRE_VER.tar.bz2&amp;quot; echo &amp;quot;ok&amp;quot; tar -xjf pcre-$PCRE_VER.tar.bz2 wget -O pcre-8.39.tar.bz2 &amp;quot;http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.bz2 ZLIB_VER=1.2.11 echo -n &amp;quot;downloading zlib-$ZLIB_VER...&amp;quot; wget -O zlib-$ZLIB_VER.</description>
+    </item>
     
     <item>
       <title>单文件 Vue Webpack 配置</title>
