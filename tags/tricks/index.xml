@@ -24,7 +24,7 @@
 既然已经走了这么远，索性再扩展一下，除了支持代理到端口，再加上指定文件夹静态文件服务呗，于是有了下面的配置。
 功能列表：
  一个端口支持多域名，访问不同域名可以转发到不同上游服务 一个域名下，可以按照项目分组，不同项目可以配置不同后端服务 一个项目可以根据路由配置多个对应后端服务 支持不带后端路由的直接转发 支持指定文件夹静态文件服务 上述一切都可以通过接口在线配置，不需要修改 Nginx/OpenResty 配置文件，并且自带接口文档  依赖：OpenResty，安装请参考官方文档。
-# #### OpenResty dynamic upstreams #### # 配置表，key 有三种格式 # 1. example.domain.name:port_number # value 有三种格式： # - upstream_ip:port # - upstream_ip:port,project # - /absolute/path/to/document/root # 2. example.domain.name:project_name # value JSON格式的路由表 # 2. kv:runtime_variable_name # value 所有请求共享的运行时变量 lua_shared_dict dyn_registry 1m; server { # 把要开发的端口全部注册在这里，一行一个，比如 9000 - 9009 listen 9000; listen 9001; # listen .</description>
+# #### OpenResty dynamic upstreams #### # 配置表，key 有三种格式 # 1. example.domain.name:port_number # value 有三种格式： # - upstream_ip:port # - upstream_ip:port,project # - /absolute/path/to/document/root # 2. example.domain.name:project_name # value JSON格式的路由表 # 2. kv:runtime_variable_name # value 所有请求共享的运行时变量 lua_shared_dict dyn_registry 1m; server { # 把可以配置的端口全部注册在这里，一行一个，比如 9000 - 9009 listen 9000; listen 9001; # listen .</description>
     </item>
     
     <item>
