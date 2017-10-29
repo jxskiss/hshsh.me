@@ -46,7 +46,7 @@ title = "用OpenResty构建动态代理服务"
 lua_shared_dict dyn_registry 1m;
 
 server {
-    # 把要开发的端口全部注册在这里，一行一个，比如 9000 - 9009
+    # 把可以配置的端口全部注册在这里，一行一个，比如 9000 - 9009
     listen       9000;
     listen       9001;
     # listen     ...
@@ -65,7 +65,7 @@ server {
     set $dyn_conf_file "/path/to/or-dynamic.json";
 
     # 无论是配置请求，还是代理请求，第一个请求都需要触发配置加载，
-    # 因此这两个 set 指令不能放在 location 里面，必须放在 server 中
+    # 因此这两个 set 指令需要放在 server 块中，所有 location 都会继承
     set $upstream "";
     set_by_lua_block $docroot {
         local cjson = require "cjson"
@@ -98,13 +98,13 @@ server {
             registry:set("kv:loaded", "true")
         end
 
-        -- 对于配置请求不需要查配置，配置接口可以在所有域名和端口上访问
+        -- 对于配置请求不需要查配置表，配置接口可以在所有域名和端口上访问
         if ngx.re.match(ngx.var.uri, "^/or-dynamic/") then
             return ""
         end
 
         -- 根据域名和端口查配置，如果查不到则是没有注册，直接返回
-        -- 在 / location 中会返回 404，set 指令中不能结束请求
+        -- set 指令中不能响应请求，在 / location 中会返回 404
         local http_host = ngx.var.http_host
         local upstream = registry:get(http_host)
         if not upstream then
@@ -117,7 +117,7 @@ server {
             return ""
         end
 
-        -- 没有逗号，文档根目录路径，所以不支持配置带有都好的路径
+        -- 没有逗号，文档根目录路径，所以不支持配置带有逗号的路径
         if not upstream:match(",") then
             return upstream
         end
@@ -150,6 +150,7 @@ server {
         proxy_set_header X-Forwarded-For $remote_addr;
 
         # upstream 需要在处理 docroot 之前处理, if is evil
+        # https://www.nginx.com/resources/wiki/start/topics/depth/ifisevil/
         if ($upstream != "") {
             proxy_pass http://$upstream;
             break;
@@ -182,7 +183,7 @@ server {
         content_by_lua_block {
             local cjson = require "cjson"
             local registry = ngx.shared.dyn_registry
-            
+
             -- 自包含的接口文档
             local config = {
                 help = {
@@ -191,7 +192,7 @@ server {
                         port = "端口号, eg: 9001",
                         upstream = "上游服务, eg: 127.0.0.1:6666",
                         docroot = "静态文件根目录, eg: /absolute/path/to/document/root",
-                        uri = "后端服务路由，支持正则表达式, eg: ^/api/v\d+/"
+                        uri = "后端服务路由，支持PCRE, eg: ^/api/v1/"
                     },
                     -- 配置项目无关的直接代理
                     [ "direct proxy" ] = {
@@ -328,7 +329,7 @@ server {
             local args = ngx.req.get_uri_args()
             if (not args or not args.host or args.host:len() == 0 or
                     ((not args.port or args.port:len() == 0) and
-                     (not args.proj or args.proj.len() == 0 or
+                     (not args.proj or args.proj:len() == 0 or
                       not args.uri or args.uri:len() == 0))
                 ) then
                 ngx.say(cjson.encode({error = "missing parameters"}))

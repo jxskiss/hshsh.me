@@ -45,9 +45,6 @@ wget -O pcre-$PCRE_VER.tar.bz2 "http://downloads.sourceforge.net/project/pcre/pc
 echo "ok"
 tar -xjf pcre-$PCRE_VER.tar.bz2
 
-
-wget -O pcre-8.39.tar.bz2 "http://downloads.sourceforge.net/project/pcre/pcre/8.39/pcre-8.39.tar.bz2
-
 ZLIB_VER=1.2.11
 echo -n "downloading zlib-$ZLIB_VER..."
 wget -O zlib-$ZLIB_VER.tar.gz http://zlib.net/zlib-$ZLIB_VER.tar.gz
