@@ -3,5 +3,6 @@ public/
 
 *.py[cdo]
 .idea/
+.vscode/
 data/ipynbs/.ipynb_checkpoints/
 *.*~
