@@ -124,14 +124,16 @@ server {
 
         -- upstream_ip:port,project, 项目前端配置
         -- 根据路由表确定是否需要转发后端服务
-        local proj, routes, uri, dest, m, err
+        local proj, routes, uri, dest, m, err, suc
         m, err = ngx.re.match(upstream, [=[([^,]+),([^,]+)]=])
         upstream, proj = m[1], m[2]
-        routes = cjson.decode(registry:get(ngx.var.host .. ":" .. proj))
-        for uri, dest in pairs(routes) do
-            if dest and ngx.re.match(ngx.var.uri, uri) then
-                upstream = dest
-                break
+        suc, routes = pcall(cjson.decode, registry:get(ngx.var.host .. ":" .. proj))
+        if suc then
+            for uri, dest in pairs(routes) do
+                if dest and ngx.re.match(ngx.var.uri, uri) then
+                    upstream = dest
+                    break
+                end
             end
         end
         ngx.var.upstream = upstream
